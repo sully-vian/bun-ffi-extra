@@ -345,7 +345,3 @@ export function read<T extends StructDef>(
     }
     return readStructData(view, def, 0, info.offsets);
 }
-
-/* -------- */
-/* EXAMPLES */
-/* -------- */

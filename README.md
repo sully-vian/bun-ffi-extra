@@ -10,3 +10,11 @@ bun lint # lint and fix with biomejs
 
 bun test # run tests
 ```
+
+## TODO
+
+- [ ] lazy memory access
+    - [ ] write implementation
+    - [ ] test
+    - [ ] write examples
+    - [ ] write doc and `index.d.ts`
