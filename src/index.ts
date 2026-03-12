@@ -1,100 +1,15 @@
-import {
-    CString,
-    FFIType,
-    type JSCallback,
-    type Pointer,
-    ptr,
-    toArrayBuffer,
-} from "bun:ffi";
+import { CString, FFIType, type Pointer, ptr, toArrayBuffer } from "bun:ffi";
+import { TYPE_LAYOUT } from "./layout";
+import type { MapFFIType, Struct, StructDef } from "./types";
+
+export * from "./layout";
+export * from "./types";
+export * from "./view";
 
 const layoutCache = new WeakMap<
     StructDef,
     { size: number; align: number; offsets: Record<string, number> }
 >();
-
-const POINTER_SIZE = (() => {
-    switch (process.arch) {
-        case "arm64":
-        case "loong64":
-        case "ppc64":
-        case "riscv64":
-        case "s390x":
-        case "x64":
-            return 8;
-        case "arm":
-        case "ia32":
-        case "mips":
-        case "mipsel":
-            throw new Error(
-                `[bun-ffi-extra] Unsupported architecture: ${process.arch}. This library requires a 64-bit environment.`,
-            );
-    }
-})();
-
-const TYPE_LAYOUT: {
-    [K in keyof MapFFIType]: { size: number; align: number };
-} = {
-    // 1-byte types
-    [FFIType.u8]: { size: 1, align: 1 },
-    [FFIType.i8]: { size: 1, align: 1 },
-    [FFIType.char]: { size: 1, align: 1 },
-    [FFIType.bool]: { size: 1, align: 1 },
-
-    // 2-byte types
-    [FFIType.u16]: { size: 2, align: 2 },
-    [FFIType.i16]: { size: 2, align: 2 },
-
-    // 4-byte types
-    [FFIType.u32]: { size: 4, align: 4 },
-    [FFIType.i32]: { size: 4, align: 4 },
-    [FFIType.f32]: { size: 4, align: 4 },
-
-    // 8-bytes types
-    [FFIType.u64]: { size: 8, align: 8 },
-    [FFIType.i64]: { size: 8, align: 8 },
-    [FFIType.f64]: { size: 8, align: 8 },
-    [FFIType.u64_fast]: { size: 8, align: 8 },
-    [FFIType.i64_fast]: { size: 8, align: 8 },
-
-    // pointer types (8-bytes on 64-bit systems)
-    [FFIType.ptr]: { size: POINTER_SIZE, align: POINTER_SIZE }, // if 64-bit system
-    [FFIType.cstring]: { size: POINTER_SIZE, align: POINTER_SIZE }, // equiv to char*
-    [FFIType.function]: { size: POINTER_SIZE, align: POINTER_SIZE },
-    [FFIType.buffer]: { size: POINTER_SIZE, align: POINTER_SIZE },
-    [FFIType.napi_env]: { size: POINTER_SIZE, align: POINTER_SIZE },
-    [FFIType.napi_value]: { size: POINTER_SIZE, align: POINTER_SIZE },
-
-    // special case
-    [FFIType.void]: { size: 0, align: 0 }, // cannot be used as a struct field
-};
-
-type MapFFIType = {
-    [FFIType.u8]: number;
-    [FFIType.i8]: number;
-    [FFIType.char]: string;
-    [FFIType.bool]: boolean;
-
-    [FFIType.u16]: number;
-    [FFIType.i16]: number;
-
-    [FFIType.u32]: number;
-    [FFIType.i32]: number;
-    [FFIType.f32]: number;
-
-    [FFIType.u64]: bigint;
-    [FFIType.i64]: bigint;
-    [FFIType.f64]: number;
-    [FFIType.u64_fast]: bigint;
-    [FFIType.i64_fast]: bigint;
-
-    [FFIType.ptr]: bigint;
-    [FFIType.cstring]: string;
-    [FFIType.function]: JSCallback | Pointer | null;
-    [FFIType.buffer]: never;
-    [FFIType.napi_env]: never;
-    [FFIType.napi_value]: never;
-    [FFIType.void]: never;
-};
 
 const defaultValue: { [K in keyof MapFFIType]: MapFFIType[K] } = {
     [FFIType.u8]: Number(),
@@ -123,20 +38,6 @@ const defaultValue: { [K in keyof MapFFIType]: MapFFIType[K] } = {
     [FFIType.napi_value]: undefined as never,
     [FFIType.void]: undefined as never,
 };
-
-type StructDef = {
-    [key: string]: FFIType | StructDef;
-};
-
-export type Struct<T extends StructDef> = {
-    -readonly [K in keyof T]: T[K] extends FFIType
-    ? MapFFIType[T[K]]
-    : T[K] extends StructDef
-    ? Struct<T[K]>
-    : never;
-};
-
-export type Ptr<_> = Pointer | null;
 
 /** @private */
 function getLayoutInfo(def: StructDef): {
@@ -428,10 +329,6 @@ export function write<T extends StructDef>(def: T, obj: Struct<T>): Uint8Array {
     return buffer;
 }
 
-export function sizeof<T extends StructDef>(def: T) {
-    return getLayoutInfo(def).size;
-}
-
 export function read<T extends StructDef>(
     def: T,
     source: Pointer | Uint8Array,
@@ -452,45 +349,3 @@ export function read<T extends StructDef>(
 /* -------- */
 /* EXAMPLES */
 /* -------- */
-
-// struct Point {
-//     int x;
-//     int y;
-// };
-const Point = {
-    x: FFIType.int,
-    y: FFIType.int,
-} as const;
-type Point = Struct<typeof Point>;
-
-// struct Point p1 = {.x = 1, .y = 2};
-const p1: Point = {
-    x: 1,
-    y: 2,
-};
-write(Point, p1);
-const p2 = p1;
-
-const Line = {
-    p1: Point,
-    p2: Point,
-} as const;
-type Line = Struct<typeof Line>;
-
-const l: Line = { p1, p2 };
-write(Line, l);
-
-const Entity = {
-    point: {
-        x: FFIType.int,
-        y: FFIType.int,
-    },
-    alive: FFIType.bool,
-} as const;
-type Entity = Struct<typeof Entity>;
-
-const e: Entity = {
-    point: p1,
-    alive: true,
-};
-write(Entity, e);
