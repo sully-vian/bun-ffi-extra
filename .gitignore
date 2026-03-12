@@ -1,5 +1,2 @@
 # dependencies (bun install)
 node_modules
-
-# C lib from tests
-*.so
