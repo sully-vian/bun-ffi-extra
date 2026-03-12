@@ -1,0 +1,23 @@
+{
+	"name": "bun-ffi-extra",
+	"version": "1.0.0",
+	"description": "TODO",
+	"module": "src/index.ts",
+	"main": "src/index.ts",
+	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/sully-vian/bun-ffi-extra"
+	},
+	"scripts": {
+		"test": "bun test",
+		"lint": "bun x biome check --write ."
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"@biomejs/biome": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	}
+}
