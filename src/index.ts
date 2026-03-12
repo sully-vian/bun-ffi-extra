@@ -12,7 +12,24 @@ const layoutCache = new WeakMap<
     { size: number; align: number; offsets: Record<string, number> }
 >();
 
-const POINTER_SIZE = process.arch === "arm" || process.arch === "ia32" ? 4 : 8;
+const POINTER_SIZE = (() => {
+    switch (process.arch) {
+        case "arm64":
+        case "loong64":
+        case "ppc64":
+        case "riscv64":
+        case "s390x":
+        case "x64":
+            return 8;
+        case "arm":
+        case "ia32":
+        case "mips":
+        case "mipsel":
+            throw new Error(
+                `[bun-ffi-extra] Unsupported architecture: ${process.arch}. This library requires a 64-bit environment.`,
+            );
+    }
+})();
 
 const TYPE_LAYOUT: {
     [K in keyof MapFFIType]: { size: number; align: number };
