@@ -1,5 +1,8 @@
 # bun-ffi-extra
 
+🚧 This package is currently under active development. 
+APIs may change and some features may be incomplete.
+
 ## Development
 
 ```bash
