@@ -18,3 +18,5 @@ bun test # run tests
     - [ ] test
     - [ ] write examples
     - [ ] write doc and `index.d.ts`
+- [ ] Optimizations
+    - [ ] decide read and write case methods when defining properties, avoid switch statement traversal on every access
