@@ -24,7 +24,7 @@ export function createView<T extends StructDef>(
 	);
 
 	// setup GC retention
-	// // C-strings require allocationg separate buffers. We must retain them
+	// C-strings require allocationg separate buffers. We must retain them
 	// here so the GC doesn't destroy them while the struct is alive
 	const retainedStrings: any[] = [];
 
@@ -81,9 +81,9 @@ function readPrimitive(view: DataView, type: FFIType, offset: number) {
 		case FFIType.bool:
 			return view.getUint8(offset) !== 0;
 		case FFIType.u16:
-			return view.getUint16(offset);
+			return view.getUint16(offset, true);
 		case FFIType.i16:
-			return view.getInt16(offset);
+			return view.getInt16(offset, true);
 		case FFIType.u32:
 			return view.getUint32(offset, true);
 		case FFIType.i32:

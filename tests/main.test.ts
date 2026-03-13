@@ -1,7 +1,7 @@
 import { cc, FFIType } from "bun:ffi";
 import { beforeAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { read, type Struct, write } from "../src";
+import { createView } from "../src";
 
 const cFileName = "test.c";
 const cPath = join(import.meta.dir, cFileName);
@@ -32,56 +32,57 @@ describe(`Arch: ${process.arch}`, () => {
 	});
 
 	test("handles simple structs without padding", () => {
-		const Point = { x: FFIType.i32, y: FFIType.i32 };
-		type Point = Struct<typeof Point>;
-		const p: Point = { x: 10, y: 20 };
-		const buffer = write(Point, p);
+		const Point = { x: FFIType.i32, y: FFIType.i32 } as const;
+		const p = createView(Point);
+		p.x = 10;
+		p.y = 20;
 
-		expect(buffer.length).toBe(8); // 4 + 4
+		expect(p.$ptr.length).toBe(8); // 4 + 4
 
 		// Bun automatically passes TypedArrays as pointers
-		const result = lib.symbols.verify_point(buffer);
+		const result = lib.symbols.verify_point(p.$ptr);
 		expect(result).toBe(30);
 	});
 
 	test("handles internal struct padding correctly", () => {
 		const Padded = { a: FFIType.i8, b: FFIType.i32 } as const;
-		type Padded = Struct<typeof Padded>;
-		const padded: Padded = { a: 5, b: 999 };
-		const buffer = write(Padded, padded);
+		const padded = createView(Padded);
+		padded.a = 5;
+		padded.b = 999;
 
-		expect(buffer.length).toBe(8); // 1 byte + 3 pad + 4 bytes
+		expect(padded.$ptr.length).toBe(8); // 1 byte + 3 pad + 4 bytes
 
-		const result = lib.symbols.verify_padded(buffer);
+		const result = lib.symbols.verify_padded(padded.$ptr);
 		expect(result).toBe(999);
 	});
 
 	test("handles tail padding correctly", () => {
 		const TailPadded = { a: FFIType.i32, b: FFIType.i8 } as const;
-		type TailPadded = Struct<typeof TailPadded>;
-		const tailPadded: TailPadded = { a: 100, b: 42 };
-		const buffer = write(TailPadded, tailPadded);
+		const tailPadded = createView(TailPadded);
+		tailPadded.a = 100;
+		tailPadded.b = 42;
 
 		// Must pad the end so the array size is a multiple of the max alignment (4)
-		expect(buffer.length).toBe(8); // 4 bytes + 1 byte + 3 pad
+		expect(tailPadded.$ptr.length).toBe(8); // 4 bytes + 1 byte + 3 pad
 
-		const result = lib.symbols.verify_tail_padded_size(buffer);
+		const result = lib.symbols.verify_tail_padded_size(tailPadded.$ptr);
 		expect(result).toBe(42);
 	});
 
 	test("handles mixed types with 8-byte alignment", () => {
 		const Mixed = { a: FFIType.u8, b: FFIType.f64, c: FFIType.u16 } as const;
-		type Mixed = Struct<typeof Mixed>;
-		const mixed: Mixed = { a: 10, b: 15.5, c: 5 };
-		const buffer = write(Mixed, mixed);
+		const mixed = createView(Mixed);
+		mixed.a = 10;
+		mixed.b = 15.5;
+		mixed.c = 5;
 
 		// maxAlign is 8 (from f64).
 		// a: 1 byte + 7 pad = 8
 		// b: 8 bytes = 16
 		// c: 2 bytes + 6 pad = 24 total size
-		expect(buffer.length).toBe(24);
+		expect(mixed.$ptr.length).toBe(24);
 
-		const result = lib.symbols.verify_mixed(buffer);
+		const result = lib.symbols.verify_mixed(mixed.$ptr);
 		expect(result).toBe(30.5); // 10 + 15.5 + 5
 	});
 
@@ -92,21 +93,17 @@ describe(`Arch: ${process.arch}`, () => {
 			center: Point, // Nested!
 			weight: FFIType.i16,
 		} as const;
-		type Node = Struct<typeof Node>;
 
-		const myNode: Node = {
-			id: 10,
-			center: { x: 100, y: 200 },
-			weight: 50,
-		};
-
-		const buffer = write(Node, myNode);
+		const myNode = createView(Node);
+		myNode.id = 10;
+		myNode.center = { x: 100, y: 200 };
+		myNode.weight = 50;
 
 		// Size calculation verification:
 		// id (1) + pad (3) + center (8) + weight (2) + tail pad (2) = 16
-		expect(buffer.length).toBe(16);
+		expect(myNode.$ptr.length).toBe(16);
 
-		const result = lib.symbols.verify_nested_node(buffer);
+		const result = lib.symbols.verify_nested_node(myNode.$ptr);
 		expect(result).toBe(360);
 	});
 
@@ -122,68 +119,63 @@ describe(`Arch: ${process.arch}`, () => {
 			w: Wrapper,
 			suffix: FFIType.i64,
 		} as const;
-		type DeepNested = Struct<typeof DeepNested>;
 
-		const data: DeepNested = {
-			prefix: 1,
-			w: {
-				a: 10,
-				p: { x: 10, y: 20 },
-				b: 2,
-			},
-			suffix: 1000n, // 64-bit types require BigInt
+		const data = createView(DeepNested);
+		data.prefix = 1;
+		data.w = {
+			a: 10,
+			p: { x: 10, y: 20 },
+			b: 2,
 		};
-
-		const buffer = write(DeepNested, data);
+		data.suffix = 1000n; // 64-bit types require BigInt
 
 		// prefix (2) + pad (2) + Wrapper (16) + pad (4) + suffix (8) = 32
-		expect(buffer.length).toBe(32);
+		expect(data.$ptr.length).toBe(32);
 
-		const result = lib.symbols.verify_deep_nested(buffer);
+		const result = lib.symbols.verify_deep_nested(data.$ptr);
 		expect(result).toBe(1043n);
 	});
 
 	test("handles 64-bit integers (BigInt)", () => {
 		const BigInts = { big1: FFIType.i64, big2: FFIType.u64 } as const;
-		type BigInts = Struct<typeof BigInts>;
 
-		const data: BigInts = {
-			big1: -5000000000000n,
-			big2: 9000000000000n,
-		};
+		const data = createView(BigInts);
 
-		const buffer = write(BigInts, data);
-		expect(buffer.length).toBe(16);
+		data.big1 = -5000000000000n;
+		data.big2 = 9000000000000n;
 
-		const result = lib.symbols.verify_bigints(buffer);
+		expect(data.$ptr.length).toBe(16);
+
+		const result = lib.symbols.verify_bigints(data.$ptr);
 		expect(result).toBe(4000000000000n);
 	});
 
 	test("handles booleans properly", () => {
 		const Bools = { flag1: FFIType.bool, flag2: FFIType.bool } as const;
-		type Bools = Struct<typeof Bools>;
 
-		const data: Bools = { flag1: true, flag2: false };
-		const buffer = write(Bools, data);
+		const data = createView(Bools);
+		data.flag1 = true;
+		data.flag2 = false;
 
-		expect(buffer.length).toBe(2);
+		expect(data.$ptr.length).toBe(2);
 
-		const result = lib.symbols.verify_bools(buffer);
+		const result = lib.symbols.verify_bools(data.$ptr);
 		// flag1 = 10, flag2 = 0
 		expect(result).toBe(10);
 	});
 
 	test("handles tightly packed 1-byte types without extra padding", () => {
 		const Packed = { a: FFIType.i8, b: FFIType.u8, c: FFIType.i8 } as const;
-		type Packed = Struct<typeof Packed>;
 
-		const data: Packed = { a: 10, b: 200, c: -5 };
-		const buffer = write(Packed, data);
+		const data = createView(Packed);
+		data.a = 10;
+		data.b = 200;
+		data.c = -5;
 
 		// 3 elements of 1 byte each = exactly 3 bytes
-		expect(buffer.length).toBe(3);
+		expect(data.$ptr.length).toBe(3);
 
-		const result = lib.symbols.verify_packed(buffer);
+		const result = lib.symbols.verify_packed(data.$ptr);
 		expect(result).toBe(205); // 10 + 200 - 5
 	});
 
@@ -193,16 +185,15 @@ describe(`Arch: ${process.arch}`, () => {
 
 	test("reads a modified simple struct", () => {
 		const Point = { x: FFIType.i32, y: FFIType.i32 } as const;
-		const buffer = write(Point, { x: 10, y: 20 });
+		const p = createView(Point);
+		p.x = 10;
+		p.y = 20;
 
 		// C will double the values
-		lib.symbols.modify_point(buffer);
+		lib.symbols.modify_point(p.$ptr);
 
-		// Read the buffer back into a JS object
-		const result = read(Point, buffer);
-
-		expect(result.x).toBe(20);
-		expect(result.y).toBe(40);
+		expect(p.x).toBe(20);
+		expect(p.y).toBe(40);
 	});
 
 	test("reads modified nested structs", () => {
@@ -212,37 +203,30 @@ describe(`Arch: ${process.arch}`, () => {
 			center: Point,
 			weight: FFIType.i16,
 		} as const;
-
-		const buffer = write(Node, {
-			id: 1,
-			center: { x: 10, y: 10 },
-			weight: 5,
-		});
+		const node = createView(Node);
+		node.id = 1;
+		node.center = { x: 10, y: 10 };
+		node.weight = 5;
 
 		// C will mutate everything
-		lib.symbols.modify_nested_node(buffer);
+		lib.symbols.modify_nested_node(node.$ptr);
 
-		const result = read(Node, buffer);
-
-		expect(result.id).toBe(99);
-		expect(result.center.x).toBe(777);
-		expect(result.center.y).toBe(888);
-		expect(result.weight).toBe(1234);
+		expect(node.id).toBe(99);
+		expect(node.center.x).toBe(777);
+		expect(node.center.y).toBe(888);
+		expect(node.weight).toBe(1234);
 	});
 
 	test("reads C-strings and raw pointers", () => {
 		const PtrStruct = { name: FFIType.cstring, data_ptr: FFIType.ptr } as const;
 
-		// Create an empty struct buffer to pass to C
-		const buffer = write(PtrStruct, { name: "", data_ptr: 0n });
+		const s = createView(PtrStruct);
 
 		// C will inject a string pointer and a fake 0xDEADBEEF pointer
-		lib.symbols.fill_ptr_struct(buffer);
+		lib.symbols.fill_ptr_struct(s.$ptr);
 
-		const result = read(PtrStruct, buffer);
-
-		expect(result.name).toBe("Hello from C FFI!");
+		expect(s.name).toBe("Hello from C FFI!");
 		// 0xDEADBEEF in decimal is 3735928559
-		expect(result.data_ptr).toBe(3735928559n);
+		expect(s.data_ptr).toBe(3735928559n);
 	});
 });

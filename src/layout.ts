@@ -86,7 +86,7 @@ export function getLayoutInfo(def: StructDef): LayoutInfo {
 			fieldSize = nestedInfo.size;
 			fieldAlign = nestedInfo.align;
 		} else {
-			const layout = TYPE_LAYOUT[type as number];
+			const layout = TYPE_LAYOUT[type];
 			if (!layout || layout.size === 0) {
 				throw new Error(`Unsupported field type: ${type}`);
 			}
