@@ -56,7 +56,7 @@ export const TYPE_LAYOUT: {
 	[FFIType.void]: { size: 0, align: 0 },
 };
 
-export type LayoutInfo = {
+type LayoutInfo = {
 	size: number;
 	align: number;
 	offsets: Record<string, number>;

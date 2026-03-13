@@ -1,12 +1,14 @@
 import { CString, FFIType, type Pointer, ptr } from "bun:ffi";
 import { getLayoutInfo } from "./layout";
-import type { StructDef, StructView } from "./types";
+import type { DeepPartial, Struct, StructDef } from "./types";
 
 export function createView<T extends StructDef>(
 	def: T,
+	initVals?: DeepPartial<Struct<T>>,
 	buffer?: Uint8Array,
 	offset: number = 0,
-): StructView<T> {
+): Struct<T> {
+	const safeInit: Record<string, any> = initVals || {};
 	const info = getLayoutInfo(def);
 	const structSize = info.size;
 
@@ -44,7 +46,12 @@ export function createView<T extends StructDef>(
 
 		if (typeof type === "object") {
 			// recursive binding for nested structs
-			const nestedView = createView(type, structBuffer, fieldOffset);
+			const nestedView = createView(
+				type,
+				safeInit[key],
+				structBuffer,
+				fieldOffset,
+			);
 			Object.defineProperty(structObj, key, {
 				get: () => nestedView,
 				set: (val) => {
@@ -67,7 +74,7 @@ export function createView<T extends StructDef>(
 			});
 		}
 	}
-	return structObj as StructView<T>;
+	return structObj as Struct<T>;
 }
 
 function readPrimitive(view: DataView, type: FFIType, offset: number) {
