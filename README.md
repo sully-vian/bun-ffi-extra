@@ -9,6 +9,8 @@ APIs may change and some features may be incomplete.
 bun lint # lint and fix with biomejs
 
 bun test # run tests
+
+bun run build # create dist package
 ```
 
 ## TODO

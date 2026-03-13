@@ -1,17 +1,24 @@
 {
 	"name": "bun-ffi-extra",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "extra features for Bun's FFI module.",
 	"module": "src/index.ts",
 	"main": "src/index.ts",
+	"types": "dist/index.d.ts",
 	"type": "module",
+	"files": [
+		"dist",
+		"README.md"
+	],
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/sully-vian/bun-ffi-extra"
+		"url": "git+https://github.com/sully-vian/bun-ffi-extra.git"
 	},
 	"scripts": {
 		"test": "bun test",
-		"lint": "bun x biome check --write ."
+		"lint": "bunx biome check --write .",
+		"build": "rm -rf dist && tsc -p tsconfig.build.json",
+		"prepublish": "bun lint && bun test && bun run build"
 	},
 	"devDependencies": {
 		"@types/bun": "latest",

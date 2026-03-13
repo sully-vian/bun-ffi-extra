@@ -1,5 +1,5 @@
 import { FFIType } from "bun:ffi";
-import { type Struct, write } from "../src";
+import { createView } from "../src";
 
 // struct Point {
 //     int x;
@@ -9,24 +9,22 @@ const Point = {
 	x: FFIType.int,
 	y: FFIType.int,
 } as const;
-type Point = Struct<typeof Point>;
 
-// struct Point p1 = {.x = 1, .y = 2};
-const p1: Point = {
-	x: 1,
-	y: 2,
-};
-write(Point, p1);
+// struct Point p1 = {.x = 1, .y = 2}; // NOT anymore
+const p1 = createView(Point); // create a buffer with js object proxy
+p1.x = 1; // writes to the buffer
+p1.y = 2;
+
 const p2 = p1;
 
 const Line = {
 	p1: Point,
 	p2: Point,
 } as const;
-type Line = Struct<typeof Line>;
 
-const l: Line = { p1, p2 };
-write(Line, l);
+const l = createView(Line);
+l.p1 = p1;
+l.p2 = p2;
 
 const Entity = {
 	point: {
@@ -35,10 +33,7 @@ const Entity = {
 	},
 	alive: FFIType.bool,
 } as const;
-type Entity = Struct<typeof Entity>;
 
-const e: Entity = {
-	point: p1,
-	alive: true,
-};
-write(Entity, e);
+const e = createView(Entity);
+e.point = p1;
+e.alive = true;
