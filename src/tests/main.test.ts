@@ -1,7 +1,7 @@
 import { cc, FFIType } from "bun:ffi";
 import { beforeAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { createView } from "../src";
+import { createView } from "../";
 
 const cFileName = "test.c";
 const cPath = join(import.meta.dir, cFileName);
@@ -33,9 +33,7 @@ describe(`Arch: ${process.arch}`, () => {
 
 	test("handles simple structs without padding", () => {
 		const Point = { x: FFIType.i32, y: FFIType.i32 } as const;
-		const p = createView(Point);
-		p.x = 10;
-		p.y = 20;
+		const p = createView(Point, { x: 10, y: 20 });
 
 		expect(p.$ptr.length).toBe(8); // 4 + 4
 
@@ -46,9 +44,7 @@ describe(`Arch: ${process.arch}`, () => {
 
 	test("handles internal struct padding correctly", () => {
 		const Padded = { a: FFIType.i8, b: FFIType.i32 } as const;
-		const padded = createView(Padded);
-		padded.a = 5;
-		padded.b = 999;
+		const padded = createView(Padded, { a: 5, b: 999 });
 
 		expect(padded.$ptr.length).toBe(8); // 1 byte + 3 pad + 4 bytes
 
@@ -58,9 +54,7 @@ describe(`Arch: ${process.arch}`, () => {
 
 	test("handles tail padding correctly", () => {
 		const TailPadded = { a: FFIType.i32, b: FFIType.i8 } as const;
-		const tailPadded = createView(TailPadded);
-		tailPadded.a = 100;
-		tailPadded.b = 42;
+		const tailPadded = createView(TailPadded, { a: 100, b: 42 });
 
 		// Must pad the end so the array size is a multiple of the max alignment (4)
 		expect(tailPadded.$ptr.length).toBe(8); // 4 bytes + 1 byte + 3 pad
@@ -71,10 +65,7 @@ describe(`Arch: ${process.arch}`, () => {
 
 	test("handles mixed types with 8-byte alignment", () => {
 		const Mixed = { a: FFIType.u8, b: FFIType.f64, c: FFIType.u16 } as const;
-		const mixed = createView(Mixed);
-		mixed.a = 10;
-		mixed.b = 15.5;
-		mixed.c = 5;
+		const mixed = createView(Mixed, { a: 10, b: 15.5, c: 5 });
 
 		// maxAlign is 8 (from f64).
 		// a: 1 byte + 7 pad = 8
@@ -94,10 +85,11 @@ describe(`Arch: ${process.arch}`, () => {
 			weight: FFIType.i16,
 		} as const;
 
-		const myNode = createView(Node);
-		myNode.id = 10;
-		myNode.center = { x: 100, y: 200 };
-		myNode.weight = 50;
+		const myNode = createView(Node, {
+			id: 10,
+			center: { x: 100, y: 200 },
+			weight: 50,
+		});
 
 		// Size calculation verification:
 		// id (1) + pad (3) + center (8) + weight (2) + tail pad (2) = 16
@@ -120,14 +112,15 @@ describe(`Arch: ${process.arch}`, () => {
 			suffix: FFIType.i64,
 		} as const;
 
-		const data = createView(DeepNested);
-		data.prefix = 1;
-		data.w = {
-			a: 10,
-			p: { x: 10, y: 20 },
-			b: 2,
-		};
-		data.suffix = 1000n; // 64-bit types require BigInt
+		const data = createView(DeepNested, {
+			prefix: 1,
+			w: {
+				a: 10,
+				p: { x: 10, y: 20 },
+				b: 2,
+			},
+			suffix: 1000n, // 64-bit requires BigInt
+		});
 
 		// prefix (2) + pad (2) + Wrapper (16) + pad (4) + suffix (8) = 32
 		expect(data.$ptr.length).toBe(32);
@@ -139,10 +132,10 @@ describe(`Arch: ${process.arch}`, () => {
 	test("handles 64-bit integers (BigInt)", () => {
 		const BigInts = { big1: FFIType.i64, big2: FFIType.u64 } as const;
 
-		const data = createView(BigInts);
-
-		data.big1 = -5000000000000n;
-		data.big2 = 9000000000000n;
+		const data = createView(BigInts, {
+			big1: -5000000000000n,
+			big2: 9000000000000n,
+		});
 
 		expect(data.$ptr.length).toBe(16);
 
@@ -167,10 +160,7 @@ describe(`Arch: ${process.arch}`, () => {
 	test("handles tightly packed 1-byte types without extra padding", () => {
 		const Packed = { a: FFIType.i8, b: FFIType.u8, c: FFIType.i8 } as const;
 
-		const data = createView(Packed);
-		data.a = 10;
-		data.b = 200;
-		data.c = -5;
+		const data = createView(Packed, { a: 10, b: 200, c: -5 });
 
 		// 3 elements of 1 byte each = exactly 3 bytes
 		expect(data.$ptr.length).toBe(3);
@@ -185,9 +175,7 @@ describe(`Arch: ${process.arch}`, () => {
 
 	test("reads a modified simple struct", () => {
 		const Point = { x: FFIType.i32, y: FFIType.i32 } as const;
-		const p = createView(Point);
-		p.x = 10;
-		p.y = 20;
+		const p = createView(Point, { x: 10, y: 20 });
 
 		// C will double the values
 		lib.symbols.modify_point(p.$ptr);
@@ -203,10 +191,11 @@ describe(`Arch: ${process.arch}`, () => {
 			center: Point,
 			weight: FFIType.i16,
 		} as const;
-		const node = createView(Node);
-		node.id = 1;
-		node.center = { x: 10, y: 10 };
-		node.weight = 5;
+		const node = createView(Node, {
+			id: 1,
+			center: { x: 10, y: 10 },
+			weight: 5,
+		});
 
 		// C will mutate everything
 		lib.symbols.modify_nested_node(node.$ptr);
