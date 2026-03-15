@@ -72,6 +72,7 @@ export function createView<T extends StructDef>(
 					writePrimitive(view, type, fieldOffset, val, retainedStrings),
 				enumerable: true,
 			});
+			if (safeInit[key] !== undefined) structObj[key] = safeInit[key];
 		}
 	}
 	return structObj as Struct<T>;

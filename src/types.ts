@@ -30,6 +30,7 @@ export type MapFFIType = {
 	[FFIType.void]: never;
 };
 
+/** @internal */
 export type DeepPartial<T> = T extends object
 	? { [K in keyof T]?: DeepPartial<T[K]> }
 	: T;
@@ -37,29 +38,34 @@ export type DeepPartial<T> = T extends object
 type FieldType = FFIType | StructDef;
 
 /**
- * This type represents the definition of a struct type.
- * A struct type can be defined as such:
- *
+ * This type represents the definition of a struct "type".
+ * A struct "type" can be defined as such:
  * ```ts
- * const Point = { x:FFIType.int, y:FFIType.int } as const;
+ * const Point = {
+ *     x: FFIType.int,
+ *     y: FFIType.int,
+ * } as const;
  * ```
- * is equivalent to
+ * which is close to
  * ```c
- * struct Point {
- *     int x,y;
- * }
+ * typedef struct {
+ *     int x;
+ *     int y;
+ * } Point;
  * ```
  */
 export type StructDef = {
 	[key: string]: FieldType;
 };
 
-export type Struct<T extends StructDef> = {
+type InternalStruct<T extends StructDef> = {
 	-readonly [K in keyof T]: T[K] extends FFIType
 		? MapFFIType[T[K]]
 		: T[K] extends StructDef
-			? Struct<T[K]>
+			? InternalStruct<T[K]>
 			: never;
-} & {
+};
+
+export type Struct<T extends StructDef> = InternalStruct<T> & {
 	readonly $ptr: Uint8Array;
 };
