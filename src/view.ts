@@ -28,11 +28,11 @@ export function createView<T extends StructDef>(
 	// setup GC retention
 	// C-strings require allocationg separate buffers. We must retain them
 	// here so the GC doesn't destroy them while the struct is alive
-	const retainedStrings: any[] = [];
+	const retainedStrings: Buffer[] = [];
 
 	// the proxy object
 	const structObj: any = {
-		get $ptr() {
+		get $raw() {
 			// expose the raw properly-offset Uint8Array to Bun FFI
 			return rootBuffer;
 		},
@@ -125,7 +125,7 @@ function writePrimitive(
 	type: FFIType,
 	offset: number,
 	val: any,
-	retained: any[],
+	retained: Buffer[],
 ) {
 	// """gracefully""" handle undefined assignment by treating as 0/null
 	if (val === undefined) val = 0;

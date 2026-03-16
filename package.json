@@ -1,14 +1,29 @@
 {
 	"name": "bun-ffi-extra",
 	"version": "1.0.2",
-	"description": "extra features for Bun's FFI module.",
+	"description": "Extra features for Bun's FFI module.",
+	"type": "module",
 	"module": "src/index.ts",
 	"main": "src/index.ts",
 	"types": "dist/index.d.ts",
-	"type": "module",
+	"exports": {
+		"types": "./src/index.ts",
+		"bun": "./src/index.ts",
+		"import": "./src/index.ts",
+		"default": "./src/index.ts"
+	},
+	"license": "MIT",
 	"files": [
+		"src",
 		"dist",
 		"README.md"
+	],
+	"keyword": [
+		"bun",
+		"ffi",
+		"low-level",
+		"c",
+		"struct"
 	],
 	"repository": {
 		"type": "git",
@@ -18,7 +33,7 @@
 		"test": "bun test",
 		"lint": "bunx biome check --write .",
 		"build": "rm -rf dist && tsc -p tsconfig.build.json",
-		"prepublish": "bun lint && bun test && bun run build"
+		"prepublishOnly": "bun lint && bun test && bun run build"
 	},
 	"devDependencies": {
 		"@types/bun": "latest",

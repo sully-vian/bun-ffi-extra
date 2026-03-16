@@ -67,5 +67,5 @@ type InternalStruct<T extends StructDef> = {
 };
 
 export type Struct<T extends StructDef> = InternalStruct<T> & {
-	readonly $ptr: Uint8Array;
+	readonly $raw: Uint8Array;
 };

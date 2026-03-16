@@ -35,10 +35,10 @@ describe(`Arch: ${process.arch}`, () => {
 		const Point = { x: FFIType.i32, y: FFIType.i32 } as const;
 		const p = createView(Point, { x: 10, y: 20 });
 
-		expect(p.$ptr.length).toBe(8); // 4 + 4
+		expect(p.$raw.length).toBe(8); // 4 + 4
 
 		// Bun automatically passes TypedArrays as pointers
-		const result = lib.symbols.verify_point(p.$ptr);
+		const result = lib.symbols.verify_point(p.$raw);
 		expect(result).toBe(30);
 	});
 
@@ -46,9 +46,9 @@ describe(`Arch: ${process.arch}`, () => {
 		const Padded = { a: FFIType.i8, b: FFIType.i32 } as const;
 		const padded = createView(Padded, { a: 5, b: 999 });
 
-		expect(padded.$ptr.length).toBe(8); // 1 byte + 3 pad + 4 bytes
+		expect(padded.$raw.length).toBe(8); // 1 byte + 3 pad + 4 bytes
 
-		const result = lib.symbols.verify_padded(padded.$ptr);
+		const result = lib.symbols.verify_padded(padded.$raw);
 		expect(result).toBe(999);
 	});
 
@@ -57,9 +57,9 @@ describe(`Arch: ${process.arch}`, () => {
 		const tailPadded = createView(TailPadded, { a: 100, b: 42 });
 
 		// Must pad the end so the array size is a multiple of the max alignment (4)
-		expect(tailPadded.$ptr.length).toBe(8); // 4 bytes + 1 byte + 3 pad
+		expect(tailPadded.$raw.length).toBe(8); // 4 bytes + 1 byte + 3 pad
 
-		const result = lib.symbols.verify_tail_padded_size(tailPadded.$ptr);
+		const result = lib.symbols.verify_tail_padded_size(tailPadded.$raw);
 		expect(result).toBe(42);
 	});
 
@@ -71,9 +71,9 @@ describe(`Arch: ${process.arch}`, () => {
 		// a: 1 byte + 7 pad = 8
 		// b: 8 bytes = 16
 		// c: 2 bytes + 6 pad = 24 total size
-		expect(mixed.$ptr.length).toBe(24);
+		expect(mixed.$raw.length).toBe(24);
 
-		const result = lib.symbols.verify_mixed(mixed.$ptr);
+		const result = lib.symbols.verify_mixed(mixed.$raw);
 		expect(result).toBe(30.5); // 10 + 15.5 + 5
 	});
 
@@ -93,9 +93,9 @@ describe(`Arch: ${process.arch}`, () => {
 
 		// Size calculation verification:
 		// id (1) + pad (3) + center (8) + weight (2) + tail pad (2) = 16
-		expect(myNode.$ptr.length).toBe(16);
+		expect(myNode.$raw.length).toBe(16);
 
-		const result = lib.symbols.verify_nested_node(myNode.$ptr);
+		const result = lib.symbols.verify_nested_node(myNode.$raw);
 		expect(result).toBe(360);
 	});
 
@@ -123,9 +123,9 @@ describe(`Arch: ${process.arch}`, () => {
 		});
 
 		// prefix (2) + pad (2) + Wrapper (16) + pad (4) + suffix (8) = 32
-		expect(data.$ptr.length).toBe(32);
+		expect(data.$raw.length).toBe(32);
 
-		const result = lib.symbols.verify_deep_nested(data.$ptr);
+		const result = lib.symbols.verify_deep_nested(data.$raw);
 		expect(result).toBe(1043n);
 	});
 
@@ -137,9 +137,9 @@ describe(`Arch: ${process.arch}`, () => {
 			big2: 9000000000000n,
 		});
 
-		expect(data.$ptr.length).toBe(16);
+		expect(data.$raw.length).toBe(16);
 
-		const result = lib.symbols.verify_bigints(data.$ptr);
+		const result = lib.symbols.verify_bigints(data.$raw);
 		expect(result).toBe(4000000000000n);
 	});
 
@@ -150,9 +150,9 @@ describe(`Arch: ${process.arch}`, () => {
 		data.flag1 = true;
 		data.flag2 = false;
 
-		expect(data.$ptr.length).toBe(2);
+		expect(data.$raw.length).toBe(2);
 
-		const result = lib.symbols.verify_bools(data.$ptr);
+		const result = lib.symbols.verify_bools(data.$raw);
 		// flag1 = 10, flag2 = 0
 		expect(result).toBe(10);
 	});
@@ -163,9 +163,9 @@ describe(`Arch: ${process.arch}`, () => {
 		const data = createView(Packed, { a: 10, b: 200, c: -5 });
 
 		// 3 elements of 1 byte each = exactly 3 bytes
-		expect(data.$ptr.length).toBe(3);
+		expect(data.$raw.length).toBe(3);
 
-		const result = lib.symbols.verify_packed(data.$ptr);
+		const result = lib.symbols.verify_packed(data.$raw);
 		expect(result).toBe(205); // 10 + 200 - 5
 	});
 
@@ -178,7 +178,7 @@ describe(`Arch: ${process.arch}`, () => {
 		const p = createView(Point, { x: 10, y: 20 });
 
 		// C will double the values
-		lib.symbols.modify_point(p.$ptr);
+		lib.symbols.modify_point(p.$raw);
 
 		expect(p.x).toBe(20);
 		expect(p.y).toBe(40);
@@ -198,7 +198,7 @@ describe(`Arch: ${process.arch}`, () => {
 		});
 
 		// C will mutate everything
-		lib.symbols.modify_nested_node(node.$ptr);
+		lib.symbols.modify_nested_node(node.$raw);
 
 		expect(node.id).toBe(99);
 		expect(node.center.x).toBe(777);
@@ -212,7 +212,7 @@ describe(`Arch: ${process.arch}`, () => {
 		const s = createView(PtrStruct);
 
 		// C will inject a string pointer and a fake 0xDEADBEEF pointer
-		lib.symbols.fill_ptr_struct(s.$ptr);
+		lib.symbols.fill_ptr_struct(s.$raw);
 
 		expect(s.name).toBe("Hello from C FFI!");
 		// 0xDEADBEEF in decimal is 3735928559

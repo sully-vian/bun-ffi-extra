@@ -1,7 +1,6 @@
 # bun-ffi-extra
 
-🚧 This package is currently under active development. 
-APIs may change and some features may be incomplete.
+🚧 This package is currently under active development. APIs may change and some features may be incomplete.
 
 ## Development
 
@@ -15,6 +14,7 @@ bun run build # create dist package
 
 ## TODO
 
+- [ ] Add support for C arrays with a `Proxy`
 - [ ] lazy memory access
     - [ ] write implementation
     - [ ] test
