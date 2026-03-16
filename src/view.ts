@@ -55,7 +55,7 @@ export function createView<T extends StructDef>(
 			Object.defineProperty(structObj, key, {
 				get: () => nestedView,
 				set: (val) => {
-					// allow easy setting: parent.nested = {x: 10, y:20 }
+					// allow easy setting: parent.nested = { x: 10, y: 20 };
 					if (val) {
 						for (const k of Object.keys(val)) {
 							nestedView[k] = val[k];
