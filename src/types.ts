@@ -59,11 +59,11 @@ export type StructDef = {
 };
 
 type InternalStruct<T extends StructDef> = {
-	-readonly [K in keyof T]: T[K] extends FFIType
-		? MapFFIType[T[K]]
-		: T[K] extends StructDef
-			? InternalStruct<T[K]>
-			: never;
+    -readonly [K in keyof T]: T[K] extends StructDef 
+        ? InternalStruct<T[K]> 
+        : T[K] extends keyof MapFFIType 
+            ? MapFFIType[T[K]] 
+            : never;
 };
 
 export type Struct<T extends StructDef> = InternalStruct<T> & {
