@@ -1,7 +1,5 @@
 import type { FFIType, JSCallback, Pointer } from "bun:ffi";
 
-export type Ptr<_> = Pointer | null;
-
 export type MapFFIType = {
 	[FFIType.u8]: number;
 	[FFIType.i8]: number;
@@ -67,5 +65,14 @@ type InternalStruct<T extends StructDef> = {
 };
 
 export type Struct<T extends StructDef> = InternalStruct<T> & {
+	readonly $raw: Uint8Array;
+};
+
+export type Ptr<T extends StructDef> = {
+	readonly addr: Pointer;
+	readonly _: Struct<T>;
+};
+
+export type Arr<T extends StructDef> = Array<Struct<T>> & {
 	readonly $raw: Uint8Array;
 };

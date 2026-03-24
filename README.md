@@ -14,11 +14,13 @@ bun run build # create dist package
 
 ## TODO
 
-- [ ] Add support for C arrays with a `Proxy`
-- [ ] lazy memory access
-    - [ ] write implementation
-    - [ ] test
-    - [ ] write examples
-    - [ ] write doc and `index.d.ts`
+- [ ] C arrays
+    - [ ] Implement
+    - [ ] Test
+    - [ ] Document
+- [ ] C Structs
+    - [x] Implement
+    - [x] Test
+    - [ ] Document
 - [ ] Optimizations
     - [ ] decide read and write case methods when defining properties, avoid switch statement traversal on every access

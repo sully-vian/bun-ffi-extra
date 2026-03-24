@@ -1,6 +1,6 @@
-import { CString, FFIType, type Pointer, ptr } from "bun:ffi";
-import { getLayoutInfo } from "./layout";
-import type { DeepPartial, Struct, StructDef } from "./types";
+import { CString, FFIType, type Pointer, ptr, toArrayBuffer } from "bun:ffi";
+import { getLayoutInfo, sizeof } from "./layout";
+import type { Arr, DeepPartial, Ptr, Struct, StructDef } from "./types";
 
 export function createView<T extends StructDef>(
 	def: T,
@@ -172,4 +172,64 @@ function writePrimitive(
 		default:
 			throw new Error(`Unsupported write for FFIType: ${type}.`);
 	}
+}
+
+export function createPtr<T extends StructDef>(def: T, obj: Struct<T>): Ptr<T> {
+	const addr = ptr(obj.$raw);
+
+	const res = { addr };
+	const size = sizeof(def);
+
+	Object.defineProperty(res, "_", {
+		get: () => {
+			const buffer = new Uint8Array(toArrayBuffer(res.addr, 0, size));
+			return createView(def, undefined, buffer);
+		},
+		enumerable: true,
+	});
+	return res as Ptr<T>;
+}
+
+export function createArr<T extends StructDef>(
+	def: T,
+	arrSize: number,
+	buffer?: Uint8Array,
+	offset: number = 0,
+): Arr<T> {
+	const elementSize = sizeof(def);
+	const totalSize = elementSize * arrSize;
+
+	const rootBuffer = buffer || new Uint8Array(totalSize);
+	const arrBuffer = rootBuffer.subarray(offset, totalSize + offset);
+	const proxy = new Proxy({} as Arr<T>, {
+		get(target: Arr<T>, prop: string | symbol, receiver: Array<T>) {
+			if (prop === "$raw") return arrBuffer;
+			if (prop === Symbol.iterator)
+				return function* () {
+					for (let i = 0; i < arrSize; i++) yield receiver[i];
+				};
+			const index = Number(prop);
+			if (Number.isNaN(index) || index < 0 || index >= arrSize) {
+				return Reflect.get(target, prop, receiver);
+			}
+
+			const elementOffset = index * elementSize;
+			const view = createView(def, undefined, arrBuffer, elementOffset);
+			return view;
+		},
+		set(target: Arr<T>, prop: string | symbol, value: T) {
+			const index = Number(prop);
+			if (Number.isNaN(index) || index < 0 || index >= arrSize) {
+				return Reflect.set(target, prop, value);
+			}
+
+			const elementOffset = index * elementSize;
+			const view = createView(def, undefined, arrBuffer, elementOffset);
+			for (const k of Object.keys(value)) {
+				(view as any)[k] = value[k];
+			}
+			return true;
+		},
+	});
+	return proxy as any as Arr<T>;
 }
