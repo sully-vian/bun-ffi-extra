@@ -57,10 +57,11 @@ describe("bun-ffi-extra C interop", () => {
 
 	describe("TypeScript → C (pack then validate by C)", () => {
 		it("should pack data correctly for C", () => {
-			const view = createView(SimplePerson);
-			view.age = 30;
-			view.height = 175.5;
-			view.weight = 70.2;
+			const view = createView(SimplePerson, {
+				age: 30,
+				height: 175.5,
+				weight: 70.2,
+			});
 
 			expect(view.$raw.length).toBe(sizeof(SimplePerson));
 
@@ -88,10 +89,11 @@ describe("bun-ffi-extra C interop", () => {
 
 	describe("Round-trip: TypeScript → C → TypeScript", () => {
 		it("should preserve data through pack → C validation → unpack", () => {
-			const view = createView(SimplePerson);
-			view.age = 33;
-			view.height = 182.3;
-			view.weight = 78.5;
+			const view = createView(SimplePerson, {
+				age: 33,
+				height: 182.3,
+				weight: 78.5,
+			});
 
 			const isValid = lib.symbols.validatePerson(view.$raw, 33, 182.3, 78.5);
 			expect(isValid).toBe(true);
