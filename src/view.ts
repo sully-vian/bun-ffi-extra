@@ -201,14 +201,14 @@ export function createArr<T extends StructDef>(
 
     const rootBuffer = buffer || new Uint8Array(totalSize);
     const arrBuffer = rootBuffer.subarray(offset, totalSize + offset);
-    const proxy = new Proxy({} as Arr<T>, {
+
+    const target: any = { $raw: arrBuffer, $length: arrSize };
+    target[Symbol.iterator] = function*() {
+        for (let i = 0; i < arrSize; i++) yield target[i];
+    };
+
+    const proxy = new Proxy(target as Arr<T>, {
         get(target: Arr<T>, prop: string | symbol, receiver: Array<T>) {
-            if (prop === "$raw") return arrBuffer;
-            if (prop === "$length") return arrSize;
-            if (prop === Symbol.iterator)
-                return function*() {
-                    for (let i = 0; i < arrSize; i++) yield receiver[i];
-                };
             const index = Number(prop);
             if (Number.isNaN(index) || index < 0 || index >= arrSize) {
                 return Reflect.get(target, prop, receiver);
@@ -227,12 +227,7 @@ export function createArr<T extends StructDef>(
             const elementOffset = index * elementSize;
             const view = createView(def, undefined, arrBuffer, elementOffset);
             for (const k of Object.keys(value)) {
-                try {
-                    (view as any)[k] = value[k];
-                } catch (e) {
-                    console.log(`key: '${k}'`);
-                    throw e;
-                }
+                (view as any)[k] = value[k];
             }
             return true;
         },

@@ -1,37 +1,37 @@
 import type { FFIType, JSCallback, Pointer } from "bun:ffi";
 
 export type MapFFIType = {
-    [FFIType.u8]: number;
-    [FFIType.i8]: number;
-    [FFIType.char]: string;
-    [FFIType.bool]: boolean;
+	[FFIType.u8]: number;
+	[FFIType.i8]: number;
+	[FFIType.char]: string;
+	[FFIType.bool]: boolean;
 
-    [FFIType.u16]: number;
-    [FFIType.i16]: number;
+	[FFIType.u16]: number;
+	[FFIType.i16]: number;
 
-    [FFIType.u32]: number;
-    [FFIType.i32]: number;
-    [FFIType.f32]: number;
+	[FFIType.u32]: number;
+	[FFIType.i32]: number;
+	[FFIType.f32]: number;
 
-    [FFIType.u64]: bigint;
-    [FFIType.u64_fast]: bigint;
-    [FFIType.i64]: bigint;
-    [FFIType.i64_fast]: bigint;
-    [FFIType.f64]: number;
+	[FFIType.u64]: bigint;
+	[FFIType.u64_fast]: bigint;
+	[FFIType.i64]: bigint;
+	[FFIType.i64_fast]: bigint;
+	[FFIType.f64]: number;
 
-    [FFIType.ptr]: bigint;
-    [FFIType.cstring]: string;
-    [FFIType.function]: JSCallback | Pointer | null;
-    [FFIType.buffer]: never;
-    [FFIType.napi_env]: never;
-    [FFIType.napi_value]: never;
-    [FFIType.void]: never;
+	[FFIType.ptr]: bigint;
+	[FFIType.cstring]: string;
+	[FFIType.function]: JSCallback | Pointer | null;
+	[FFIType.buffer]: never;
+	[FFIType.napi_env]: never;
+	[FFIType.napi_value]: never;
+	[FFIType.void]: never;
 };
 
 /** @internal */
 export type DeepPartial<T> = T extends object
-    ? { [K in keyof T]?: DeepPartial<T[K]> }
-    : T;
+	? { [K in keyof T]?: DeepPartial<T[K]> }
+	: T;
 
 type FieldType = FFIType | StructDef;
 
@@ -53,27 +53,27 @@ type FieldType = FFIType | StructDef;
  * ```
  */
 export type StructDef = {
-    [key: string]: FieldType;
+	[key: string]: FieldType;
 };
 
 type InternalStruct<T extends StructDef> = {
-    -readonly [K in keyof T]: T[K] extends StructDef
-    ? InternalStruct<T[K]>
-    : T[K] extends keyof MapFFIType
-    ? MapFFIType[T[K]]
-    : never;
+	-readonly [K in keyof T]: T[K] extends StructDef
+		? InternalStruct<T[K]>
+		: T[K] extends keyof MapFFIType
+			? MapFFIType[T[K]]
+			: never;
 };
 
 export type Struct<T extends StructDef> = InternalStruct<T> & {
-    readonly $raw: Uint8Array;
+	readonly $raw: Uint8Array;
 };
 
 export type Ptr<T extends StructDef> = {
-    readonly addr: Pointer;
-    readonly _: Struct<T>;
+	readonly addr: Pointer;
+	readonly _: Struct<T>;
 };
 
 export type Arr<T extends StructDef> = Array<Struct<T> | InternalStruct<T>> & {
-    readonly $raw: Uint8Array;
-    readonly $length: number;
+	readonly $raw: Uint8Array;
+	readonly $length: number;
 };
