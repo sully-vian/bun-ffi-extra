@@ -17,7 +17,7 @@ bun run build # create dist package
 - [ ] C arrays
     - [x] Implement
     - [x] Test
-    - [ ] Maybe [statically bind the indexes](#static-index-properties)
+    - [x] Maybe [statically bind the indexes](#static-index-properties)
     - [ ] Document
 - [ ] C Structs
     - [x] Implement
