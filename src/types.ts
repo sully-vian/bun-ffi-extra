@@ -73,7 +73,8 @@ export type Ptr<T extends StructDef> = {
 	readonly _: Struct<T>;
 };
 
-export type Arr<T extends StructDef> = Array<Struct<T> | InternalStruct<T>> & {
+export type Arr<T extends StructDef> = {
+	[index: number]: Struct<T> | InternalStruct<T>;
 	readonly $raw: Uint8Array;
 	readonly $length: number;
 };
