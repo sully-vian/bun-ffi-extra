@@ -66,6 +66,7 @@ type InternalStruct<T extends StructDef> = {
 
 export type Struct<T extends StructDef> = InternalStruct<T> & {
 	readonly $raw: Uint8Array;
+	readonly [IS_STRUCT]: true;
 };
 
 export type Ptr<T extends StructDef> = {
@@ -78,4 +79,8 @@ export type Arr<T extends StructDef> = {
 	[index: number]: Struct<T> | InternalStruct<T>;
 	readonly $raw: Uint8Array;
 	readonly $length: number;
+	readonly [IS_ARR]: true;
 };
+
+export const IS_STRUCT = Symbol("IS_STRUCT");
+export const IS_ARR = Symbol("IS_ARR");
