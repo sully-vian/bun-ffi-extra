@@ -72,6 +72,7 @@ export type Ptr<T extends StructDef> = {
 	readonly addr: Pointer;
 	readonly _: Struct<T>;
 };
+export const NULL = 0 as Pointer;
 
 export type Arr<T extends StructDef> = {
 	[index: number]: Struct<T> | InternalStruct<T>;
