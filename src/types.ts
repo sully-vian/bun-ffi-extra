@@ -33,8 +33,6 @@ export type DeepPartial<T> = T extends object
 	? { [K in keyof T]?: DeepPartial<T[K]> }
 	: T;
 
-type FieldType = FFIType | StructDef;
-
 /**
  * This type represents the definition of a struct "type".
  * A struct "type" can be defined as such:
@@ -52,31 +50,67 @@ type FieldType = FFIType | StructDef;
  * } Point;
  * ```
  */
-export type StructDef = {
-	[key: string]: FieldType;
+type FieldType = FFIType | TagType;
+export type TagTypeShape = { [key: string]: FieldType };
+export type TagType = TagTypeShape & {
+	// readonly [TAG_TYPE_KIND]: TagTypeKind;
 };
 
-type InternalStruct<T extends StructDef> = {
-	-readonly [K in keyof T]: T[K] extends StructDef
-		? InternalStruct<T[K]>
+export enum TagTypeKind { // for runtime checks
+	STRUCT,
+	UNION,
+}
+
+/* ------------------ */
+/* C TYPE DEFINITIONS */
+/* ------------------ */
+
+export type StructDef<T extends TagType> = T & {
+	readonly [TAG_TYPE_KIND]: TagTypeKind.STRUCT;
+};
+
+export type UnionDef<T extends TagType> = T & {
+	readonly [TAG_TYPE_KIND]: TagTypeKind.UNION;
+};
+export function struct<T extends TagType>(def: T): StructDef<T> {
+	return { ...def, [TAG_TYPE_KIND]: TagTypeKind.STRUCT };
+}
+
+export function union<T extends TagType>(def: T): UnionDef<T> {
+	return { ...def, [TAG_TYPE_KIND]: TagTypeKind.UNION };
+}
+
+/* ----------------------- */
+/* C INSTANCES DEFINITIONS */
+/* ----------------------- */
+
+type ViewFields<T extends TagType> = {
+	-readonly [K in Exclude<keyof T, typeof TAG_TYPE_KIND>]: T[K] extends TagType
+		? ViewFields<T[K]>
 		: T[K] extends keyof MapFFIType
 			? MapFFIType[T[K]]
 			: never;
 };
 
-export type Struct<T extends StructDef> = InternalStruct<T> & {
+type MemoryView = {
 	readonly $raw: Uint8Array;
-	readonly [IS_STRUCT]: true;
+	readonly [IS_VIEW]: true;
 };
 
-export type Ptr<T extends StructDef> = {
-	readonly addr: Pointer;
-	readonly _: Struct<T>;
-};
+export type Struct<T extends TagType> = ViewFields<T> & MemoryView;
+
+export type Union<T extends TagType> = ViewFields<T> & MemoryView;
+
+export const DEREF = "_"; // for non-verbose access
+
+/*export type Ptr<T extends TagType> = {
+    readonly addr: Pointer;
+    readonly [DEREF]: Struct<T>;
+};*/
 export const NULL = 0 as Pointer;
 
-export type Arr<T extends StructDef> = {
-	[index: number]: Struct<T> | InternalStruct<T>;
+export type Arr<T extends TagType> = {
+	[index: number]: Struct<T> | ViewFields<T>;
 	readonly $raw: Uint8Array;
 	readonly $length: number;
 	readonly [IS_ARR]: true;
@@ -84,3 +118,6 @@ export type Arr<T extends StructDef> = {
 
 export const IS_STRUCT = Symbol("IS_STRUCT");
 export const IS_ARR = Symbol("IS_ARR");
+export const IS_VIEW = Symbol("IS_VIEW");
+export const IS_UNION = Symbol("IS_UNION");
+export const TAG_TYPE_KIND = Symbol("TAG_TYPE_KIND");

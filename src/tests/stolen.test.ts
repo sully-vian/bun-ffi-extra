@@ -1,7 +1,7 @@
 import { cc, FFIType, type Pointer, ptr, toArrayBuffer } from "bun:ffi";
 import { beforeAll, describe, expect, it } from "bun:test";
 import { join } from "node:path";
-import { createArr, createView, sizeof } from "..";
+import { createArr, createView, sizeof, struct } from "..";
 
 const cFileName = "stolen.c";
 const cPath = join(import.meta.dir, cFileName);
@@ -48,11 +48,11 @@ describe("bun-ffi-extra C interop", () => {
 		});
 	});
 
-	const SimplePerson = {
+	const SimplePerson = struct({
 		age: FFIType.u32,
 		height: FFIType.f32,
 		weight: FFIType.f64,
-	} as const;
+	});
 
 	describe("TypeScript → C (pack then validate by C)", () => {
 		it("should pack data correctly for C", () => {
@@ -106,7 +106,7 @@ describe("bun-ffi-extra C interop", () => {
 });
 
 describe("C interop with pointers and arrays (Highlight)", () => {
-	const Highlight = {
+	const Highlight = struct({
 		start: FFIType.u32,
 		end: FFIType.u32,
 		style_id: FFIType.u32,
@@ -114,7 +114,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 		hl_ref: FFIType.u16,
 		conceal_text_ptr: FFIType.cstring,
 		conceal_text_len: FFIType.u64,
-	} as const;
+	});
 
 	describe("Single struct packing", () => {
 		it("should pack a single highlight correctly for C", () => {

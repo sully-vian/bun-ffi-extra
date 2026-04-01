@@ -1,5 +1,12 @@
 import { FFIType } from "bun:ffi";
-import type { MapFFIType, StructDef } from "./types";
+import {
+	type MapFFIType,
+	type StructDef,
+	TAG_TYPE_KIND,
+	type TagType,
+	TagTypeKind,
+	type UnionDef,
+} from "./types";
 
 export const POINTER_SIZE = (() => {
 	switch (process.arch) {
@@ -61,9 +68,11 @@ type LayoutInfo = {
 	align: number;
 	offsets: Record<string, number>;
 };
-const layoutCache = new WeakMap<StructDef, LayoutInfo>();
+const layoutCache = new WeakMap<TagType, LayoutInfo>();
 
-export function getLayoutInfo(def: StructDef): LayoutInfo {
+export function getLayoutInfo<T extends TagType>(
+	def: StructDef<T> | UnionDef<T>,
+): LayoutInfo {
 	let result = layoutCache.get(def);
 	if (result !== undefined) {
 		return result;
@@ -71,18 +80,21 @@ export function getLayoutInfo(def: StructDef): LayoutInfo {
 
 	let currentOffset = 0;
 	let maxAlign = 1;
+	let maxSize = 0;
 	const offsets: Record<string, number> = {};
 
 	for (const key of Object.keys(def)) {
 		const type = def[key];
-		if (type === undefined) {
-			throw new Error(`Invalid struct definition.`);
-		}
+		if (type === undefined) throw new Error(`Invalid struct definition.`);
 
 		let fieldSize = 0;
 		let fieldAlign = 1;
+
 		if (typeof type === "object") {
-			const nestedInfo = getLayoutInfo(type as StructDef);
+			const nestedInfo = getLayoutInfo({
+				...type,
+				[TAG_TYPE_KIND]: def[TAG_TYPE_KIND],
+			});
 			fieldSize = nestedInfo.size;
 			fieldAlign = nestedInfo.align;
 		} else {
@@ -95,19 +107,43 @@ export function getLayoutInfo(def: StructDef): LayoutInfo {
 		}
 
 		maxAlign = Math.max(maxAlign, fieldAlign);
-		const padding = (fieldAlign - (currentOffset % fieldAlign)) % fieldAlign;
-		currentOffset += padding;
-		offsets[key] = currentOffset;
-		currentOffset += fieldSize;
+
+		switch (def[TAG_TYPE_KIND]) {
+			case TagTypeKind.STRUCT: {
+				const padding =
+					(fieldAlign - (currentOffset % fieldAlign)) % fieldAlign;
+				currentOffset += padding;
+				offsets[key] = currentOffset;
+				currentOffset += fieldSize;
+				break;
+			}
+			case TagTypeKind.UNION: {
+				offsets[key] = 0;
+				maxSize = Math.max(maxSize, fieldSize);
+				break;
+			}
+		}
 	}
 
-	const totalSize = Math.ceil(currentOffset / maxAlign) * maxAlign;
+	let totalSize: number;
+	switch (def[TAG_TYPE_KIND]) {
+		case TagTypeKind.STRUCT: {
+			totalSize = Math.ceil(currentOffset / maxAlign) * maxAlign;
+			break;
+		}
+		case TagTypeKind.UNION: {
+			totalSize = Math.ceil(maxSize / maxAlign) * maxAlign;
+			break;
+		}
+	}
 
 	result = { size: totalSize, align: maxAlign, offsets };
 	layoutCache.set(def, result);
 	return result;
 }
 
-export function sizeof<T extends StructDef>(def: T): number {
+export function sizeof<T extends TagType>(
+	def: StructDef<T> | UnionDef<T>,
+): number {
 	return getLayoutInfo(def).size;
 }
