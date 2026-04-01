@@ -1,7 +1,7 @@
 import { cc, FFIType } from "bun:ffi";
 import { beforeAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { createView } from "../";
+import { createView, struct } from "../";
 
 const cFileName = "test.c";
 const cPath = join(import.meta.dir, cFileName);
@@ -32,7 +32,7 @@ describe(`Arch: ${process.arch}`, () => {
 	});
 
 	test("handles simple structs without padding", () => {
-		const Point = { x: FFIType.i32, y: FFIType.i32 } as const;
+		const Point = struct({ x: FFIType.i32, y: FFIType.i32 });
 		const p = createView(Point, { x: 10, y: 20 });
 
 		expect(p.$raw.length).toBe(8); // 4 + 4
@@ -43,7 +43,7 @@ describe(`Arch: ${process.arch}`, () => {
 	});
 
 	test("handles internal struct padding correctly", () => {
-		const Padded = { a: FFIType.i8, b: FFIType.i32 } as const;
+		const Padded = struct({ a: FFIType.i8, b: FFIType.i32 });
 		const padded = createView(Padded, { a: 5, b: 999 });
 
 		expect(padded.$raw.length).toBe(8); // 1 byte + 3 pad + 4 bytes
@@ -53,7 +53,7 @@ describe(`Arch: ${process.arch}`, () => {
 	});
 
 	test("handles tail padding correctly", () => {
-		const TailPadded = { a: FFIType.i32, b: FFIType.i8 } as const;
+		const TailPadded = struct({ a: FFIType.i32, b: FFIType.i8 });
 		const tailPadded = createView(TailPadded, { a: 100, b: 42 });
 
 		// Must pad the end so the array size is a multiple of the max alignment (4)
@@ -64,7 +64,7 @@ describe(`Arch: ${process.arch}`, () => {
 	});
 
 	test("handles mixed types with 8-byte alignment", () => {
-		const Mixed = { a: FFIType.u8, b: FFIType.f64, c: FFIType.u16 } as const;
+		const Mixed = struct({ a: FFIType.u8, b: FFIType.f64, c: FFIType.u16 });
 		const mixed = createView(Mixed, { a: 10, b: 15.5, c: 5 });
 
 		// maxAlign is 8 (from f64).
@@ -78,12 +78,12 @@ describe(`Arch: ${process.arch}`, () => {
 	});
 
 	test("handles nested structs and their padding", () => {
-		const Point = { x: FFIType.i32, y: FFIType.i32 } as const;
-		const Node = {
+		const Point = struct({ x: FFIType.i32, y: FFIType.i32 });
+		const Node = struct({
 			id: FFIType.i8,
 			center: Point, // Nested!
 			weight: FFIType.i16,
-		} as const;
+		});
 
 		const myNode = createView(Node, {
 			id: 10,
@@ -100,17 +100,17 @@ describe(`Arch: ${process.arch}`, () => {
 	});
 
 	test("handles deeply nested structs with complex alignment", () => {
-		const Point = { x: FFIType.i32, y: FFIType.i32 } as const;
-		const Wrapper = {
+		const Point = struct({ x: FFIType.i32, y: FFIType.i32 });
+		const Wrapper = struct({
 			a: FFIType.i8,
 			p: Point,
 			b: FFIType.i8,
-		};
-		const DeepNested = {
+		});
+		const DeepNested = struct({
 			prefix: FFIType.i16,
 			w: Wrapper,
 			suffix: FFIType.i64,
-		} as const;
+		});
 
 		const data = createView(DeepNested, {
 			prefix: 1,
@@ -130,7 +130,7 @@ describe(`Arch: ${process.arch}`, () => {
 	});
 
 	test("handles 64-bit integers (BigInt)", () => {
-		const BigInts = { big1: FFIType.i64, big2: FFIType.u64 } as const;
+		const BigInts = struct({ big1: FFIType.i64, big2: FFIType.u64 });
 
 		const data = createView(BigInts, {
 			big1: -5000000000000n,
@@ -144,7 +144,7 @@ describe(`Arch: ${process.arch}`, () => {
 	});
 
 	test("handles booleans properly", () => {
-		const Bools = { flag1: FFIType.bool, flag2: FFIType.bool } as const;
+		const Bools = struct({ flag1: FFIType.bool, flag2: FFIType.bool });
 
 		const data = createView(Bools);
 		data.flag1 = true;
@@ -158,7 +158,7 @@ describe(`Arch: ${process.arch}`, () => {
 	});
 
 	test("handles tightly packed 1-byte types without extra padding", () => {
-		const Packed = { a: FFIType.i8, b: FFIType.u8, c: FFIType.i8 } as const;
+		const Packed = struct({ a: FFIType.i8, b: FFIType.u8, c: FFIType.i8 });
 
 		const data = createView(Packed, { a: 10, b: 200, c: -5 });
 
@@ -174,7 +174,7 @@ describe(`Arch: ${process.arch}`, () => {
 	/* ------------------- */
 
 	test("reads a modified simple struct", () => {
-		const Point = { x: FFIType.i32, y: FFIType.i32 } as const;
+		const Point = struct({ x: FFIType.i32, y: FFIType.i32 });
 		const p = createView(Point, { x: 10, y: 20 });
 
 		// C will double the values
@@ -185,12 +185,12 @@ describe(`Arch: ${process.arch}`, () => {
 	});
 
 	test("reads modified nested structs", () => {
-		const Point = { x: FFIType.i32, y: FFIType.i32 } as const;
-		const Node = {
+		const Point = struct({ x: FFIType.i32, y: FFIType.i32 });
+		const Node = struct({
 			id: FFIType.i8,
 			center: Point,
 			weight: FFIType.i16,
-		} as const;
+		});
 		const node = createView(Node, {
 			id: 1,
 			center: { x: 10, y: 10 },
@@ -207,7 +207,7 @@ describe(`Arch: ${process.arch}`, () => {
 	});
 
 	test("reads C-strings and raw pointers", () => {
-		const PtrStruct = { name: FFIType.cstring, data_ptr: FFIType.ptr } as const;
+		const PtrStruct = struct({ name: FFIType.cstring, data_ptr: FFIType.ptr });
 
 		const s = createView(PtrStruct);
 
