@@ -1,5 +1,5 @@
 import { CString, FFIType, type Pointer, ptr } from "bun:ffi";
-import { getLayoutInfo, sizeof } from "./layout";
+import { sizeof } from "./layout";
 import {
 	type Arr,
 	type DeepPartial,
@@ -21,8 +21,7 @@ export function createStruct<T extends TagType>(
 ): Struct<T> {
 	const safeInit: Record<string, any> = initVals || {};
 
-	const info = getLayoutInfo(def);
-	const structSize = info.size;
+	const structSize = def.$layout.size;
 
 	// resolve underlying memory
 	const rootBuffer = buffer || new Uint8Array(structSize);
@@ -60,7 +59,7 @@ export function createStruct<T extends TagType>(
 	// bind the properties
 	for (const key of Object.keys(def)) {
 		const type = def[key];
-		const fieldOffset = info.offsets[key];
+		const fieldOffset = def.$layout.offsets[key];
 
 		if (typeof type === "object") {
 			// recursive binding for nested structs
@@ -120,8 +119,7 @@ export function createUnion<T extends TagType>(
 ): Union<T> {
 	const safeInit: Record<string, any> = initVals || {};
 
-	const info = getLayoutInfo(def);
-	const unionSize = info.size;
+	const unionSize = def.$layout.size;
 
 	// resolve underlying memory
 	const rootBuffer = buffer || new Uint8Array(unionSize);
@@ -150,7 +148,7 @@ export function createUnion<T extends TagType>(
 	// bind the properties
 	for (const key of Object.keys(def)) {
 		const type = def[key];
-		const fieldOffset = info.offsets[key];
+		const fieldOffset = def.$layout.offsets[key];
 
 		if (typeof type === "object") {
 			// recursive binding for nested structs

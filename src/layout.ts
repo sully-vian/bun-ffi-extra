@@ -2,9 +2,9 @@ import { FFIType } from "bun:ffi";
 import {
 	type MapFFIType,
 	type StructDef,
-	TAG_TYPE_KIND,
 	type TagType,
 	TagTypeKind,
+	type TagTypeShape,
 	type UnionDef,
 } from "./types";
 
@@ -63,15 +63,16 @@ export const TYPE_LAYOUT: {
 	[FFIType.void]: { size: 0, align: 0 },
 };
 
-type LayoutInfo = {
+export type LayoutInfo = {
 	size: number;
 	align: number;
 	offsets: Record<string, number>;
 };
 const layoutCache = new WeakMap<TagType, LayoutInfo>();
 
-export function getLayoutInfo<T extends TagType>(
-	def: StructDef<T> | UnionDef<T>,
+export function getLayoutInfo(
+	def: TagTypeShape,
+	kind: TagTypeKind,
 ): LayoutInfo {
 	let result = layoutCache.get(def);
 	if (result !== undefined) {
@@ -91,7 +92,7 @@ export function getLayoutInfo<T extends TagType>(
 		let fieldAlign = 1;
 
 		if (typeof type === "object") {
-			const nestedInfo = getLayoutInfo(type);
+			const nestedInfo = getLayoutInfo(type, kind); // TODO: fix
 			fieldSize = nestedInfo.size;
 			fieldAlign = nestedInfo.align;
 		} else {
@@ -105,7 +106,7 @@ export function getLayoutInfo<T extends TagType>(
 
 		maxAlign = Math.max(maxAlign, fieldAlign);
 
-		switch (def[TAG_TYPE_KIND]) {
+		switch (kind) {
 			case TagTypeKind.STRUCT: {
 				const padding =
 					(fieldAlign - (currentOffset % fieldAlign)) % fieldAlign;
@@ -123,7 +124,7 @@ export function getLayoutInfo<T extends TagType>(
 	}
 
 	let totalSize: number;
-	switch (def[TAG_TYPE_KIND]) {
+	switch (kind) {
 		case TagTypeKind.STRUCT: {
 			totalSize = Math.ceil(currentOffset / maxAlign) * maxAlign;
 			break;
@@ -142,5 +143,5 @@ export function getLayoutInfo<T extends TagType>(
 export function sizeof<T extends TagType>(
 	def: StructDef<T> | UnionDef<T>,
 ): number {
-	return getLayoutInfo(def).size;
+	return def.$layout.size;
 }
