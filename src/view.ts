@@ -4,14 +4,16 @@ import {
 	type Arr,
 	type DeepPartial,
 	IS_STRUCT,
+	type OnlyOne,
 	type Struct,
 	type StructDef,
 	TAG_TYPE_KIND,
 	type TagType,
+	type Union,
 	type UnionDef,
 } from "./types";
 
-export function createView<T extends TagType>(
+export function createStruct<T extends TagType>(
 	def: StructDef<T>,
 	initVals?: DeepPartial<Struct<T>>,
 	buffer?: Uint8Array,
@@ -62,7 +64,7 @@ export function createView<T extends TagType>(
 
 		if (typeof type === "object") {
 			// recursive binding for nested structs
-			const nestedView = createView(
+			const nestedView = createStruct(
 				{ ...type, [TAG_TYPE_KIND]: def[TAG_TYPE_KIND] },
 				safeInit[key],
 				structBuffer,
@@ -108,6 +110,96 @@ export function createView<T extends TagType>(
 		}
 	}
 	return structObj as Struct<T>;
+}
+
+export function createUnion<T extends TagType>(
+	def: UnionDef<T>,
+	initVals?: OnlyOne<Union<T>>,
+	buffer?: Uint8Array,
+	offset: number = 0,
+): Union<T> {
+	const safeInit: Record<string, any> = initVals || {};
+
+	const info = getLayoutInfo(def);
+	const unionSize = info.size;
+
+	// resolve underlying memory
+	const rootBuffer = buffer || new Uint8Array(unionSize);
+
+	const unionBuffer = rootBuffer.subarray(offset, offset + unionSize);
+	const view = new DataView(
+		unionBuffer.buffer,
+		unionBuffer.byteOffset,
+		unionBuffer.byteLength,
+	);
+
+	// setup GC retention
+	// C-strings require allocationg separate buffers. We must retain them
+	// here so the GC doesn't destroy them while the struct is alive
+	const retainedStrings: Buffer[] = [];
+
+	// the proxy object
+	const unionObj: any = {
+		get $raw() {
+			// expose the raw properly-offset Uint8Array to Bun FFI
+			return rootBuffer;
+		},
+		__retained: retainedStrings,
+	};
+
+	// bind the properties
+	for (const key of Object.keys(def)) {
+		const type = def[key];
+		const fieldOffset = info.offsets[key];
+
+		if (typeof type === "object") {
+			// recursive binding for nested structs
+			const nestedView = createStruct(
+				{ ...type, [TAG_TYPE_KIND]: def[TAG_TYPE_KIND] },
+				safeInit[key],
+				unionBuffer,
+				fieldOffset,
+			);
+			Object.defineProperty(unionObj, key, {
+				get: () => nestedView,
+				set(val) {
+					try {
+						// allow easy setting: parent.nested = { x: 10, y: 20 };
+						if (!val) return;
+						if (val[IS_STRUCT]) return unionBuffer.set(val.$raw, fieldOffset); // fast: direct memory copy
+
+						for (const k of Object.keys(val)) {
+							(nestedView as any)[k] = val[k];
+						}
+					} catch (e) {
+						throw new Error(`Failed to set field '${key}'`, { cause: e });
+					}
+				},
+				enumerable: true,
+			});
+		} else {
+			// standard primitive binding
+			Object.defineProperty(unionObj, key, {
+				get() {
+					try {
+						return readPrimitive(view, type, fieldOffset);
+					} catch (e) {
+						throw new Error(`Failed to get field '${key}'`, { cause: e });
+					}
+				},
+				set(val) {
+					try {
+						writePrimitive(view, type, fieldOffset, val, retainedStrings);
+					} catch (e) {
+						throw new Error(`Failed to set field '${key}'`, { cause: e });
+					}
+				},
+				enumerable: true,
+			});
+			if (safeInit[key] !== undefined) unionObj[key] = safeInit[key];
+		}
+	}
+	return unionObj as Struct<T>;
 }
 
 function readPrimitive(view: DataView, type: FFIType, offset: number) {
@@ -245,7 +337,12 @@ export function createArr<T extends TagType>(
 				try {
 					if (!viewCache[i]) {
 						const elementOffset = i * elementSize;
-						viewCache[i] = createView(def, undefined, arrBuffer, elementOffset);
+						viewCache[i] = createStruct(
+							def,
+							undefined,
+							arrBuffer,
+							elementOffset,
+						);
 					}
 					return viewCache[i];
 				} catch (e) {
