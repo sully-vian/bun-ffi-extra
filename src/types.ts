@@ -1,4 +1,5 @@
 import type { FFIType, JSCallback, Pointer } from "bun:ffi";
+import { getLayoutInfo, type LayoutInfo } from "./layout";
 
 export type MapFFIType = {
 	[FFIType.u8]: number;
@@ -97,16 +98,20 @@ export enum TagTypeKind { // for runtime checks
 
 export type StructDef<T extends TagType> = T & {
 	readonly [TAG_TYPE_KIND]: TagTypeKind.STRUCT;
+	readonly $layout: LayoutInfo;
 };
 export function struct<T extends TagType>(def: T): StructDef<T> {
-	return { ...def, [TAG_TYPE_KIND]: TagTypeKind.STRUCT };
+	const layout = getLayoutInfo(def, TagTypeKind.STRUCT);
+	return { ...def, $layout: layout, [TAG_TYPE_KIND]: TagTypeKind.STRUCT };
 }
 
 export type UnionDef<T extends TagType> = T & {
 	readonly [TAG_TYPE_KIND]: TagTypeKind.UNION;
+	readonly $layout: LayoutInfo;
 };
 export function union<T extends TagType>(def: T): UnionDef<T> {
-	return { ...def, [TAG_TYPE_KIND]: TagTypeKind.UNION };
+	const layout = getLayoutInfo(def, TagTypeKind.UNION);
+	return { ...def, $layout: layout, [TAG_TYPE_KIND]: TagTypeKind.UNION };
 }
 
 /* ----------------------- */
@@ -114,7 +119,10 @@ export function union<T extends TagType>(def: T): UnionDef<T> {
 /* ----------------------- */
 
 type ViewFields<T extends TagType> = {
-	-readonly [K in Exclude<keyof T, typeof TAG_TYPE_KIND>]: T[K] extends TagType
+	-readonly [K in Exclude<
+		keyof T,
+		typeof TAG_TYPE_KIND | "$layout"
+	>]: T[K] extends TagTypeShape
 		? ViewFields<T[K]>
 		: T[K] extends keyof MapFFIType
 			? MapFFIType[T[K]]
