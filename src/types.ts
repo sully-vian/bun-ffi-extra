@@ -28,10 +28,40 @@ export type MapFFIType = {
 	[FFIType.void]: never;
 };
 
-/** @internal */
+/** @internal
+ * When initializing a struct in C, any members not explicitly initilized are
+ * implicitely set to zero. This type allows for recursive partial definitions
+ * of complex structures.
+ * ```ts
+ * const Point = struct({
+ *     x: FFIType.int,
+ *     y: FFIType.int,
+ *     meta: { id: FFIType.u64 },
+ * });
+ * const p = createStruct(Point, { x: 10 }
+ * ```
+ */
 export type DeepPartial<T> = T extends object
 	? { [K in keyof T]?: DeepPartial<T[K]> }
 	: T;
+
+/** @internal
+ * When initializing a union in C, the initializer must have only one element
+ * ```ts
+ * const IntFloat = union({
+ *     i: FFIType.int,
+ *     f: FFIType.f32,
+ * });
+ * const u = createUnion(IntFloat, { f: 1.2 });
+ * ```
+ */
+export type OnlyOne<T> = {
+	[K in keyof T]: {
+		[P in K]: T[P];
+	} & {
+		[P in Exclude<keyof T, K>]?: never;
+	};
+}[keyof T];
 
 /**
  * This type represents the definition of a struct "type".

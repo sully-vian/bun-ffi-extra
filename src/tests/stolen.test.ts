@@ -1,7 +1,7 @@
 import { cc, FFIType, type Pointer, ptr, toArrayBuffer } from "bun:ffi";
 import { beforeAll, describe, expect, it } from "bun:test";
 import { join } from "node:path";
-import { createArr, createView, sizeof, struct } from "..";
+import { createArr, createStruct, sizeof, struct } from "..";
 
 const cFileName = "stolen.c";
 const cPath = join(import.meta.dir, cFileName);
@@ -56,7 +56,7 @@ describe("bun-ffi-extra C interop", () => {
 
 	describe("TypeScript → C (pack then validate by C)", () => {
 		it("should pack data correctly for C", () => {
-			const view = createView(SimplePerson, {
+			const view = createStruct(SimplePerson, {
 				age: 30,
 				height: 175.5,
 				weight: 70.2,
@@ -78,7 +78,7 @@ describe("bun-ffi-extra C interop", () => {
 			const cBuffer = new Uint8Array(
 				toArrayBuffer(cPersonPtr as Pointer, 0, size),
 			);
-			const unpacked = createView(SimplePerson, undefined, cBuffer);
+			const unpacked = createStruct(SimplePerson, undefined, cBuffer);
 
 			expect(unpacked.age).toBe(30);
 			expect(unpacked.height).toBeCloseTo(175.5, 1);
@@ -88,7 +88,7 @@ describe("bun-ffi-extra C interop", () => {
 
 	describe("Round-trip: TypeScript → C → TypeScript", () => {
 		it("should preserve data through pack → C validation → unpack", () => {
-			const view = createView(SimplePerson, {
+			const view = createStruct(SimplePerson, {
 				age: 33,
 				height: 182.3,
 				weight: 78.5,
@@ -97,7 +97,7 @@ describe("bun-ffi-extra C interop", () => {
 			const isValid = lib.symbols.validatePerson(view.$raw, 33, 182.3, 78.5);
 			expect(isValid).toBeTrue();
 
-			const unpacked = createView(SimplePerson, undefined, view.$raw);
+			const unpacked = createStruct(SimplePerson, undefined, view.$raw);
 			expect(unpacked.age).toBe(33);
 			expect(unpacked.height).toBeCloseTo(182.3, 1);
 			expect(unpacked.weight).toBeCloseTo(78.5, 1);
@@ -118,7 +118,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 
 	describe("Single struct packing", () => {
 		it("should pack a single highlight correctly for C", () => {
-			const view = createView(Highlight, {
+			const view = createStruct(Highlight, {
 				start: 6,
 				end: 11,
 				style_id: 1,
@@ -141,7 +141,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 		});
 
 		it("should pack highlight with emoji correctly", () => {
-			const view = createView(Highlight, {
+			const view = createStruct(Highlight, {
 				start: 30,
 				end: 35,
 				style_id: 3,
@@ -166,7 +166,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 		});
 
 		it("should pack highlight with null text", () => {
-			const view = createView(Highlight, {
+			const view = createStruct(Highlight, {
 				start: 1,
 				end: 5,
 				style_id: 1,

@@ -1,7 +1,7 @@
 import { cc, FFIType } from "bun:ffi";
 import { beforeAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { createView, struct } from "../";
+import { createStruct, struct } from "../";
 
 const cFileName = "test.c";
 const cPath = join(import.meta.dir, cFileName);
@@ -33,7 +33,7 @@ describe(`Arch: ${process.arch}`, () => {
 
 	test("handles simple structs without padding", () => {
 		const Point = struct({ x: FFIType.i32, y: FFIType.i32 });
-		const p = createView(Point, { x: 10, y: 20 });
+		const p = createStruct(Point, { x: 10, y: 20 });
 
 		expect(p.$raw.length).toBe(8); // 4 + 4
 
@@ -44,7 +44,7 @@ describe(`Arch: ${process.arch}`, () => {
 
 	test("handles internal struct padding correctly", () => {
 		const Padded = struct({ a: FFIType.i8, b: FFIType.i32 });
-		const padded = createView(Padded, { a: 5, b: 999 });
+		const padded = createStruct(Padded, { a: 5, b: 999 });
 
 		expect(padded.$raw.length).toBe(8); // 1 byte + 3 pad + 4 bytes
 
@@ -54,7 +54,7 @@ describe(`Arch: ${process.arch}`, () => {
 
 	test("handles tail padding correctly", () => {
 		const TailPadded = struct({ a: FFIType.i32, b: FFIType.i8 });
-		const tailPadded = createView(TailPadded, { a: 100, b: 42 });
+		const tailPadded = createStruct(TailPadded, { a: 100, b: 42 });
 
 		// Must pad the end so the array size is a multiple of the max alignment (4)
 		expect(tailPadded.$raw.length).toBe(8); // 4 bytes + 1 byte + 3 pad
@@ -65,7 +65,7 @@ describe(`Arch: ${process.arch}`, () => {
 
 	test("handles mixed types with 8-byte alignment", () => {
 		const Mixed = struct({ a: FFIType.u8, b: FFIType.f64, c: FFIType.u16 });
-		const mixed = createView(Mixed, { a: 10, b: 15.5, c: 5 });
+		const mixed = createStruct(Mixed, { a: 10, b: 15.5, c: 5 });
 
 		// maxAlign is 8 (from f64).
 		// a: 1 byte + 7 pad = 8
@@ -85,7 +85,7 @@ describe(`Arch: ${process.arch}`, () => {
 			weight: FFIType.i16,
 		});
 
-		const myNode = createView(Node, {
+		const myNode = createStruct(Node, {
 			id: 10,
 			center: { x: 100, y: 200 },
 			weight: 50,
@@ -112,7 +112,7 @@ describe(`Arch: ${process.arch}`, () => {
 			suffix: FFIType.i64,
 		});
 
-		const data = createView(DeepNested, {
+		const data = createStruct(DeepNested, {
 			prefix: 1,
 			w: {
 				a: 10,
@@ -132,7 +132,7 @@ describe(`Arch: ${process.arch}`, () => {
 	test("handles 64-bit integers (BigInt)", () => {
 		const BigInts = struct({ big1: FFIType.i64, big2: FFIType.u64 });
 
-		const data = createView(BigInts, {
+		const data = createStruct(BigInts, {
 			big1: -5000000000000n,
 			big2: 9000000000000n,
 		});
@@ -146,7 +146,7 @@ describe(`Arch: ${process.arch}`, () => {
 	test("handles booleans properly", () => {
 		const Bools = struct({ flag1: FFIType.bool, flag2: FFIType.bool });
 
-		const data = createView(Bools);
+		const data = createStruct(Bools);
 		data.flag1 = true;
 		data.flag2 = false;
 
@@ -160,7 +160,7 @@ describe(`Arch: ${process.arch}`, () => {
 	test("handles tightly packed 1-byte types without extra padding", () => {
 		const Packed = struct({ a: FFIType.i8, b: FFIType.u8, c: FFIType.i8 });
 
-		const data = createView(Packed, { a: 10, b: 200, c: -5 });
+		const data = createStruct(Packed, { a: 10, b: 200, c: -5 });
 
 		// 3 elements of 1 byte each = exactly 3 bytes
 		expect(data.$raw.length).toBe(3);
@@ -175,7 +175,7 @@ describe(`Arch: ${process.arch}`, () => {
 
 	test("reads a modified simple struct", () => {
 		const Point = struct({ x: FFIType.i32, y: FFIType.i32 });
-		const p = createView(Point, { x: 10, y: 20 });
+		const p = createStruct(Point, { x: 10, y: 20 });
 
 		// C will double the values
 		lib.symbols.modify_point(p.$raw);
@@ -191,7 +191,7 @@ describe(`Arch: ${process.arch}`, () => {
 			center: Point,
 			weight: FFIType.i16,
 		});
-		const node = createView(Node, {
+		const node = createStruct(Node, {
 			id: 1,
 			center: { x: 10, y: 10 },
 			weight: 5,
@@ -209,7 +209,7 @@ describe(`Arch: ${process.arch}`, () => {
 	test("reads C-strings and raw pointers", () => {
 		const PtrStruct = struct({ name: FFIType.cstring, data_ptr: FFIType.ptr });
 
-		const s = createView(PtrStruct);
+		const s = createStruct(PtrStruct);
 
 		// C will inject a string pointer and a fake 0xDEADBEEF pointer
 		lib.symbols.fill_ptr_struct(s.$raw);
