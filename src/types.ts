@@ -68,14 +68,13 @@ export enum TagTypeKind { // for runtime checks
 export type StructDef<T extends TagType> = T & {
 	readonly [TAG_TYPE_KIND]: TagTypeKind.STRUCT;
 };
-
-export type UnionDef<T extends TagType> = T & {
-	readonly [TAG_TYPE_KIND]: TagTypeKind.UNION;
-};
 export function struct<T extends TagType>(def: T): StructDef<T> {
 	return { ...def, [TAG_TYPE_KIND]: TagTypeKind.STRUCT };
 }
 
+export type UnionDef<T extends TagType> = T & {
+	readonly [TAG_TYPE_KIND]: TagTypeKind.UNION;
+};
 export function union<T extends TagType>(def: T): UnionDef<T> {
 	return { ...def, [TAG_TYPE_KIND]: TagTypeKind.UNION };
 }
@@ -119,5 +118,4 @@ export type Arr<T extends TagType> = {
 export const IS_STRUCT = Symbol("IS_STRUCT");
 export const IS_ARR = Symbol("IS_ARR");
 export const IS_VIEW = Symbol("IS_VIEW");
-export const IS_UNION = Symbol("IS_UNION");
 export const TAG_TYPE_KIND = Symbol("TAG_TYPE_KIND");
