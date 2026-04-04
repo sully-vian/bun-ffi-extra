@@ -2,31 +2,31 @@ import type { FFIType, JSCallback, Pointer } from "bun:ffi";
 import { getLayoutInfo, type LayoutInfo } from "./layout";
 
 export type MapFFIType = {
-    [FFIType.u8]: number;
-    [FFIType.i8]: number;
-    [FFIType.char]: string;
-    [FFIType.bool]: boolean;
+	[FFIType.u8]: number;
+	[FFIType.i8]: number;
+	[FFIType.char]: string;
+	[FFIType.bool]: boolean;
 
-    [FFIType.u16]: number;
-    [FFIType.i16]: number;
+	[FFIType.u16]: number;
+	[FFIType.i16]: number;
 
-    [FFIType.u32]: number;
-    [FFIType.i32]: number;
-    [FFIType.f32]: number;
+	[FFIType.u32]: number;
+	[FFIType.i32]: number;
+	[FFIType.f32]: number;
 
-    [FFIType.u64]: bigint;
-    [FFIType.u64_fast]: bigint;
-    [FFIType.i64]: bigint;
-    [FFIType.i64_fast]: bigint;
-    [FFIType.f64]: number;
+	[FFIType.u64]: bigint;
+	[FFIType.u64_fast]: bigint;
+	[FFIType.i64]: bigint;
+	[FFIType.i64_fast]: bigint;
+	[FFIType.f64]: number;
 
-    [FFIType.ptr]: bigint;
-    [FFIType.cstring]: string;
-    [FFIType.function]: JSCallback | Pointer | null;
-    [FFIType.buffer]: never;
-    [FFIType.napi_env]: never;
-    [FFIType.napi_value]: never;
-    [FFIType.void]: never;
+	[FFIType.ptr]: bigint;
+	[FFIType.cstring]: string;
+	[FFIType.function]: JSCallback | Pointer | null;
+	[FFIType.buffer]: never;
+	[FFIType.napi_env]: never;
+	[FFIType.napi_value]: never;
+	[FFIType.void]: never;
 };
 
 /** @internal
@@ -43,8 +43,8 @@ export type MapFFIType = {
  * ```
  */
 export type DeepPartial<T> = T extends object
-    ? { [K in keyof T]?: DeepPartial<T[K]> }
-    : T;
+	? { [K in keyof T]?: DeepPartial<T[K]> }
+	: T;
 
 /** @internal
  * When initializing a union in C, the initializer must have only one element
@@ -57,11 +57,11 @@ export type DeepPartial<T> = T extends object
  * ```
  */
 export type OnlyOne<T> = {
-    [K in keyof T]: {
-        [P in K]: T[P];
-    } & {
-        [P in Exclude<keyof T, K>]?: never;
-    };
+	[K in keyof T]: {
+		[P in K]: T[P];
+	} & {
+		[P in Exclude<keyof T, K>]?: never;
+	};
 }[keyof T];
 
 /**
@@ -85,11 +85,11 @@ export type FieldType = FFIType | TagType;
 
 export type TagTypeShape = { [key: string]: FieldType };
 
-export type TagType = StructDef<any> | UnionDef<any>;
+export type TagType = StructDef<TagTypeShape> | UnionDef<TagTypeShape>;
 
 export enum TagTypeKind { // for runtime checks
-    STRUCT,
-    UNION,
+	STRUCT,
+	UNION,
 }
 
 /* ------------------ */
@@ -97,27 +97,27 @@ export enum TagTypeKind { // for runtime checks
 /* ------------------ */
 
 export type StructDef<T extends TagTypeShape> = T & {
-    readonly [TAG_TYPE_KIND]: TagTypeKind.STRUCT;
-    readonly [LAYOUT]: LayoutInfo;
+	readonly [TAG_TYPE_KIND]: TagTypeKind.STRUCT;
+	readonly [LAYOUT]: LayoutInfo;
 };
 export function struct<T extends TagTypeShape>(def: T): StructDef<T> {
-    return {
-        ...def,
-        [LAYOUT]: getLayoutInfo(def, TagTypeKind.STRUCT),
-        [TAG_TYPE_KIND]: TagTypeKind.STRUCT,
-    };
+	return {
+		...def,
+		[LAYOUT]: getLayoutInfo(def, TagTypeKind.STRUCT),
+		[TAG_TYPE_KIND]: TagTypeKind.STRUCT,
+	};
 }
 
 export type UnionDef<T extends TagTypeShape> = T & {
-    readonly [TAG_TYPE_KIND]: TagTypeKind.UNION;
-    readonly [LAYOUT]: LayoutInfo;
+	readonly [TAG_TYPE_KIND]: TagTypeKind.UNION;
+	readonly [LAYOUT]: LayoutInfo;
 };
 export function union<T extends TagTypeShape>(def: T): UnionDef<T> {
-    return {
-        ...def,
-        [LAYOUT]: getLayoutInfo(def, TagTypeKind.UNION),
-        [TAG_TYPE_KIND]: TagTypeKind.UNION,
-    };
+	return {
+		...def,
+		[LAYOUT]: getLayoutInfo(def, TagTypeKind.UNION),
+		[TAG_TYPE_KIND]: TagTypeKind.UNION,
+	};
 }
 
 /* ----------------------- */
@@ -125,18 +125,18 @@ export function union<T extends TagTypeShape>(def: T): UnionDef<T> {
 /* ----------------------- */
 
 type ViewFields<T extends TagTypeShape> = {
-    -readonly [K in keyof T]: T[K] extends StructDef<infer Shape>
-    ? Struct<Shape>
-    : T[K] extends UnionDef<infer Shape>
-    ? Union<Shape>
-    : T[K] extends keyof MapFFIType
-    ? MapFFIType[T[K]]
-    : never;
+	-readonly [K in keyof T]: T[K] extends StructDef<infer Shape>
+		? Struct<Shape>
+		: T[K] extends UnionDef<infer Shape>
+			? Union<Shape>
+			: T[K] extends keyof MapFFIType
+				? MapFFIType[T[K]]
+				: never;
 };
 
 type MemoryView = {
-    readonly $raw: Uint8Array;
-    readonly [IS_VIEW]: true;
+	readonly $raw: Uint8Array;
+	readonly [IS_VIEW]: true;
 };
 
 export type Struct<T extends TagTypeShape> = ViewFields<T> & MemoryView;
@@ -152,10 +152,10 @@ export const DEREF = "_"; // for non-verbose access
 export const NULL = 0 as Pointer;
 
 export type Arr<T extends TagTypeShape> = {
-    [index: number]: Struct<T> | ViewFields<T>;
-    readonly $raw: Uint8Array;
-    readonly $length: number;
-    readonly [IS_ARR]: true;
+	[index: number]: Struct<T> | ViewFields<T>;
+	readonly $raw: Uint8Array;
+	readonly $length: number;
+	readonly [IS_ARR]: true;
 };
 
 export const IS_STRUCT = Symbol("IS_STRUCT");
