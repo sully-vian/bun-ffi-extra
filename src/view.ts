@@ -12,9 +12,10 @@ import {
 	type TagType,
 	type Union,
 	type UnionDef,
+    type TagTypeShape,
 } from "./types";
 
-export function createStruct<T extends TagType>(
+export function createStruct<T extends TagTypeShape>(
 	def: StructDef<T>,
 	initVals?: DeepPartial<Struct<T>>,
 	buffer?: Uint8Array,
@@ -118,7 +119,7 @@ export function createStruct<T extends TagType>(
 	return structObj as Struct<T>;
 }
 
-export function createUnion<T extends TagType>(
+export function createUnion<T extends TagTypeShape>(
 	def: UnionDef<T>,
 	initVals?: OnlyOne<Union<T>>,
 	buffer?: Uint8Array,
@@ -319,7 +320,7 @@ function writePrimitive(
     return res as Ptr<T>;
 }*/
 
-export function createArr<T extends TagType>(
+export function createArr<T extends TagTypeShape>(
 	def: StructDef<T>,
 	arrSize: number,
 	buffer?: Uint8Array,
