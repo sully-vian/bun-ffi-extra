@@ -1,5 +1,6 @@
 import { FFIType } from "bun:ffi";
 import {
+	LAYOUT,
 	type MapFFIType,
 	type StructDef,
 	type TagType,
@@ -68,17 +69,11 @@ export type LayoutInfo = {
 	align: number;
 	offsets: Record<string, number>;
 };
-const layoutCache = new WeakMap<TagType, LayoutInfo>();
 
 export function getLayoutInfo(
 	def: TagTypeShape,
 	kind: TagTypeKind,
 ): LayoutInfo {
-	let result = layoutCache.get(def);
-	if (result !== undefined) {
-		return result;
-	}
-
 	let currentOffset = 0;
 	let maxAlign = 1;
 	let maxSize = 0;
@@ -135,13 +130,11 @@ export function getLayoutInfo(
 		}
 	}
 
-	result = { size: totalSize, align: maxAlign, offsets };
-	layoutCache.set(def, result);
-	return result;
+	return { size: totalSize, align: maxAlign, offsets };
 }
 
 export function sizeof<T extends TagType>(
 	def: StructDef<T> | UnionDef<T>,
 ): number {
-	return def.$layout.size;
+	return def[LAYOUT].size;
 }

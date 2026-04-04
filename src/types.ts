@@ -98,20 +98,26 @@ export enum TagTypeKind { // for runtime checks
 
 export type StructDef<T extends TagType> = T & {
 	readonly [TAG_TYPE_KIND]: TagTypeKind.STRUCT;
-	readonly $layout: LayoutInfo;
+	readonly [LAYOUT]: LayoutInfo;
 };
 export function struct<T extends TagType>(def: T): StructDef<T> {
-	const layout = getLayoutInfo(def, TagTypeKind.STRUCT);
-	return { ...def, $layout: layout, [TAG_TYPE_KIND]: TagTypeKind.STRUCT };
+	return {
+		...def,
+		[LAYOUT]: getLayoutInfo(def, TagTypeKind.STRUCT),
+		[TAG_TYPE_KIND]: TagTypeKind.STRUCT,
+	};
 }
 
 export type UnionDef<T extends TagType> = T & {
 	readonly [TAG_TYPE_KIND]: TagTypeKind.UNION;
-	readonly $layout: LayoutInfo;
+	readonly [LAYOUT]: LayoutInfo;
 };
 export function union<T extends TagType>(def: T): UnionDef<T> {
-	const layout = getLayoutInfo(def, TagTypeKind.UNION);
-	return { ...def, $layout: layout, [TAG_TYPE_KIND]: TagTypeKind.UNION };
+	return {
+		...def,
+		[LAYOUT]: getLayoutInfo(def, TagTypeKind.UNION),
+		[TAG_TYPE_KIND]: TagTypeKind.UNION,
+	};
 }
 
 /* ----------------------- */
@@ -121,7 +127,7 @@ export function union<T extends TagType>(def: T): UnionDef<T> {
 type ViewFields<T extends TagType> = {
 	-readonly [K in Exclude<
 		keyof T,
-		typeof TAG_TYPE_KIND | "$layout"
+		typeof TAG_TYPE_KIND | typeof LAYOUT
 	>]: T[K] extends TagTypeShape
 		? ViewFields<T[K]>
 		: T[K] extends keyof MapFFIType
@@ -157,3 +163,4 @@ export const IS_STRUCT = Symbol("IS_STRUCT");
 export const IS_ARR = Symbol("IS_ARR");
 export const IS_VIEW = Symbol("IS_VIEW");
 export const TAG_TYPE_KIND = Symbol("TAG_TYPE_KIND");
+export const LAYOUT = Symbol("LAYOUT");
