@@ -4,6 +4,7 @@ import {
 	type Arr,
 	type DeepPartial,
 	IS_STRUCT,
+	LAYOUT,
 	type OnlyOne,
 	type Struct,
 	type StructDef,
@@ -21,7 +22,7 @@ export function createStruct<T extends TagType>(
 ): Struct<T> {
 	const safeInit: Record<string, any> = initVals || {};
 
-	const structSize = def.$layout.size;
+	const structSize = def[LAYOUT].size;
 
 	// resolve underlying memory
 	const rootBuffer = buffer || new Uint8Array(structSize);
@@ -59,33 +60,39 @@ export function createStruct<T extends TagType>(
 	// bind the properties
 	for (const key of Object.keys(def)) {
 		const type = def[key];
-		const fieldOffset = def.$layout.offsets[key];
+		const fieldOffset = def[LAYOUT].offsets[key];
 
 		if (typeof type === "object") {
 			// recursive binding for nested structs
-			const nestedView = createStruct(
-				{ ...type, [TAG_TYPE_KIND]: def[TAG_TYPE_KIND] },
-				safeInit[key],
-				structBuffer,
-				fieldOffset,
-			);
-			Object.defineProperty(structObj, key, {
-				get: () => nestedView,
-				set(val) {
-					try {
-						// allow easy setting: parent.nested = { x: 10, y: 20 };
-						if (!val) return;
-						if (val[IS_STRUCT]) return structBuffer.set(val.$raw, fieldOffset); // fast: direct memory copy
+			try {
+				const nestedView = createStruct(
+					{ ...type, [TAG_TYPE_KIND]: def[TAG_TYPE_KIND] },
+					safeInit[key],
+					structBuffer,
+					fieldOffset,
+				);
+				Object.defineProperty(structObj, key, {
+					get: () => nestedView,
+					set(val) {
+						try {
+							// allow easy setting: parent.nested = { x: 10, y: 20 };
+							if (!val) return;
+							if (val[IS_STRUCT])
+								return structBuffer.set(val.$raw, fieldOffset); // fast: direct memory copy
 
-						for (const k of Object.keys(val)) {
-							(nestedView as any)[k] = val[k];
+							for (const k of Object.keys(val)) {
+								(nestedView as any)[k] = val[k];
+							}
+						} catch (e) {
+							throw new Error(`Failed to set field '${key}'`, { cause: e });
 						}
-					} catch (e) {
-						throw new Error(`Failed to set field '${key}'`, { cause: e });
-					}
-				},
-				enumerable: true,
-			});
+					},
+					enumerable: true,
+				});
+			} catch (e) {
+				console.log(`failed on '${key}'`);
+				throw e;
+			}
 		} else {
 			// standard primitive binding
 			Object.defineProperty(structObj, key, {
@@ -119,7 +126,7 @@ export function createUnion<T extends TagType>(
 ): Union<T> {
 	const safeInit: Record<string, any> = initVals || {};
 
-	const unionSize = def.$layout.size;
+	const unionSize = def[LAYOUT].size;
 
 	// resolve underlying memory
 	const rootBuffer = buffer || new Uint8Array(unionSize);
@@ -148,7 +155,7 @@ export function createUnion<T extends TagType>(
 	// bind the properties
 	for (const key of Object.keys(def)) {
 		const type = def[key];
-		const fieldOffset = def.$layout.offsets[key];
+		const fieldOffset = def[LAYOUT].offsets[key];
 
 		if (typeof type === "object") {
 			// recursive binding for nested structs

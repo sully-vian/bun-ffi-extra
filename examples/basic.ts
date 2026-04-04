@@ -21,6 +21,8 @@ const Line = struct({
 	p1: Point,
 	p2: Point,
 });
+console.log(Line);
+console.log(Object.keys(Line));
 
 const l = createStruct(Line);
 l.p1 = p1;
