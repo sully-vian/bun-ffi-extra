@@ -395,3 +395,7 @@ export function createArr<T extends TagTypeShape>(
 	}
 	return target as Arr<T>;
 }
+
+export function B(strings: TemplateStringsArray) {
+	return Buffer.from(`${strings}\0`);
+}

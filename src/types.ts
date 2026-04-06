@@ -33,6 +33,7 @@ export type MapFFIType = {
  * When initializing a struct in C, any members not explicitly initilized are
  * implicitely set to zero. This type allows for recursive partial definitions
  * of complex structures.
+ * @example
  * ```ts
  * const Point = struct({
  *     x: FFIType.int,
@@ -48,6 +49,7 @@ export type DeepPartial<T> = T extends object
 
 /** @internal
  * When initializing a union in C, the initializer must have only one element
+ * @example
  * ```ts
  * const IntFloat = union({
  *     i: FFIType.int,
@@ -65,22 +67,24 @@ export type OnlyOne<T> = {
 }[keyof T];
 
 /**
- * This type represents the definition of a struct "type".
- * A struct "type" can be defined as such:
+ * Extracts the TypeScript implementation type from a {@link StructDef} or {@link UnionDef}.
+ * @example
  * ```ts
- * const Point = struct({
- *     x: FFIType.int,
- *     y: FFIType.int,
+ * const User = struct({
+ *    id: FFIType.int,
+ *    name: FFIType.cstring
  * });
- * ```
- * which is close to
- * ```c
- * typedef struct {
- *     int x;
- *     int y;
- * } Point;
+ * type User = Infer<typeof User>;
+ * let user: User = createView(User);
  * ```
  */
+export type Infer<T> =
+	T extends StructDef<infer Shape>
+		? Struct<Shape>
+		: T extends UnionDef<infer Shape>
+			? Union<Shape>
+			: never;
+
 export type FieldType = FFIType | TagType;
 
 export type TagTypeShape = { [key: string]: FieldType };
@@ -96,6 +100,24 @@ export enum TagTypeKind { // for runtime checks
 /* C TYPE DEFINITIONS */
 /* ------------------ */
 
+/**
+ * This type represents the definition of a struct "type".
+ * A struct "type" can be defined as such:
+ * @example
+ * ```ts
+ * const Point = struct({
+ *     x: FFIType.int,
+ *     y: FFIType.int,
+ * });
+ * ```
+ * which is close to
+ * ```c
+ * typedef struct {
+ *     int x;
+ *     int y;
+ * } Point;
+ * ```
+ */
 export type StructDef<T extends TagTypeShape> = T & {
 	readonly [TAG_TYPE_KIND]: TagTypeKind.STRUCT;
 	readonly [LAYOUT]: LayoutInfo;
@@ -108,6 +130,24 @@ export function struct<T extends TagTypeShape>(def: T): StructDef<T> {
 	};
 }
 
+/**
+ * This type represents the definition of a union "type".
+ * A union "type" can be defined as such:
+ * @example
+ * ```ts
+ * const IntFloat = union({
+ *     i: FFIType.int,
+ *     f: FFIType.f32,
+ * });
+ * ```
+ * which is close to
+ * ```c
+ * union {
+ *     int i;
+ *     float f;
+ * };
+ * ```
+ */
 export type UnionDef<T extends TagTypeShape> = T & {
 	readonly [TAG_TYPE_KIND]: TagTypeKind.UNION;
 	readonly [LAYOUT]: LayoutInfo;
