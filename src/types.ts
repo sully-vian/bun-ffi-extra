@@ -68,10 +68,10 @@ export type OnlyOne<T> = {
  * This type represents the definition of a struct "type".
  * A struct "type" can be defined as such:
  * ```ts
- * const Point = {
+ * const Point = struct({
  *     x: FFIType.int,
  *     y: FFIType.int,
- * } as const;
+ * });
  * ```
  * which is close to
  * ```c
