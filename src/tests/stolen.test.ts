@@ -8,7 +8,6 @@ const cPath = join(import.meta.dir, cFileName);
 
 const libDef = {
 	createTestPerson: {
-		args: [],
 		returns: FFIType.ptr,
 	},
 	validatePerson: {
@@ -16,7 +15,6 @@ const libDef = {
 		returns: FFIType.bool,
 	},
 	createHighlightList: {
-		args: [],
 		returns: FFIType.ptr,
 	},
 	validateHighlight: {

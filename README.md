@@ -2,6 +2,8 @@
 
 🚧 This package is currently under active development. APIs may change and some features may be incomplete.
 
+The use of Bun FFI's `read` namespace is currently avoided since it is not faster than the built-in `DataView.getFloat64` method despite what the [documentation says](https://bun.com/reference/bun/ffi).
+
 ## Development
 
 ```bash
@@ -15,7 +17,7 @@ bun run build # create dist package
 ## TODO
 
 - [ ] C unions: [Stack Overflow](https://stackoverflow.com/questions/71476166/create-c-style-union-in-ts-type-system)
-    - [ ] Implement
+    - [x] Implement
     - [ ] Test
     - [ ] Document
 - [ ] C arrays

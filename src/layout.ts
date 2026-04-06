@@ -2,6 +2,7 @@ import { FFIType } from "bun:ffi";
 import {
 	LAYOUT,
 	type MapFFIType,
+	TAG_TYPE_KIND,
 	type TagType,
 	TagTypeKind,
 	type TagTypeShape,
@@ -87,7 +88,8 @@ export function getLayoutInfo(
 		if (typeof type === "object") {
 			fieldSize = type[LAYOUT].size;
 			fieldAlign = type[LAYOUT].align;
-			const nestedInfo = getLayoutInfo(type, kind); // TODO: fix
+			const fieldKind = type[TAG_TYPE_KIND];
+			const nestedInfo = getLayoutInfo(type, fieldKind); // TODO: fix
 			fieldSize = nestedInfo.size;
 			fieldAlign = nestedInfo.align;
 		} else {
