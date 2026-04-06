@@ -18,7 +18,7 @@ bun run build # create dist package
 
 - [ ] C unions: [Stack Overflow](https://stackoverflow.com/questions/71476166/create-c-style-union-in-ts-type-system)
     - [x] Implement
-    - [ ] Test
+    - [x] Test
     - [ ] Document
 - [ ] C arrays
     - [x] Implement
