@@ -1,14 +1,17 @@
-import { CString, FFIType, type Pointer, ptr } from "bun:ffi";
+import { CString, FFIType, type Pointer, ptr, toArrayBuffer } from "bun:ffi";
 import { sizeof } from "./layout";
 import {
 	type Arr,
+	DEREF,
 	type DeepPartial,
 	IS_STRUCT,
 	LAYOUT,
 	type OnlyOne,
+	type Ptr,
 	type Struct,
 	type StructDef,
 	TAG_TYPE_KIND,
+	type TagType,
 	TagTypeKind,
 	type TagTypeShape,
 	type Union,
@@ -64,43 +67,72 @@ export function createStruct<T extends TagTypeShape>(
 		const fieldOffset = def[LAYOUT].offsets[key];
 
 		if (typeof type === "object") {
-			// recursive binding for nested structs
-			let nestedView: Struct<any>;
-			switch (type[TAG_TYPE_KIND]) {
-				case TagTypeKind.STRUCT:
-					nestedView = createStruct(
-						type,
-						safeInit[key],
-						structBuffer,
-						fieldOffset,
-					);
-					break;
-				case TagTypeKind.UNION:
-					nestedView = createUnion(
-						type,
-						safeInit[key],
-						structBuffer,
-						fieldOffset,
-					);
-					break;
-			}
-			Object.defineProperty(structObj, key, {
-				get: () => nestedView,
-				set(val) {
-					try {
-						// allow easy setting: parent.nested = { x: 10, y: 20 };
-						if (!val) return;
-						if (val[IS_STRUCT]) return structBuffer.set(val.$raw, fieldOffset); // fast: direct memory copy
-
-						for (const k of Object.keys(val)) {
-							(nestedView as any)[k] = val[k];
+			if (type[TAG_TYPE_KIND] === TagTypeKind.PTR) {
+				Object.defineProperty(structObj, key, {
+					get() {
+						try {
+							const rawPtr = readPrimitive(view, FFIType.ptr, fieldOffset);
+							return createPtr(type.def, rawPtr as Pointer | null);
+						} catch (e) {
+							throw new Error(`Failed to get field '${key}'`, { cause: e });
 						}
-					} catch (e) {
-						throw new Error(`Failed to set field '${key}'`, { cause: e });
-					}
-				},
-				enumerable: true,
-			});
+					},
+					set(val) {
+						try {
+							const addr = val ? val.addr : null;
+							writePrimitive(
+								view,
+								FFIType.ptr,
+								fieldOffset,
+								addr,
+								retainedStrings,
+							);
+						} catch (e) {
+							throw new Error(`Failed to set field '${key}'`, { cause: e });
+						}
+					},
+					enumerable: true,
+				});
+			} else {
+				// recursive binding for nested structs
+				let nestedView: Struct<any>;
+				switch (type[TAG_TYPE_KIND]) {
+					case TagTypeKind.STRUCT:
+						nestedView = createStruct(
+							type,
+							safeInit[key],
+							structBuffer,
+							fieldOffset,
+						);
+						break;
+					case TagTypeKind.UNION:
+						nestedView = createUnion(
+							type,
+							safeInit[key],
+							structBuffer,
+							fieldOffset,
+						);
+						break;
+				}
+				Object.defineProperty(structObj, key, {
+					get: () => nestedView,
+					set(val) {
+						try {
+							// allow easy setting: parent.nested = { x: 10, y: 20 };
+							if (!val) return;
+							if (val[IS_STRUCT])
+								return structBuffer.set(val.$raw, fieldOffset); // fast: direct memory copy
+
+							for (const k of Object.keys(val)) {
+								(nestedView as any)[k] = val[k];
+							}
+						} catch (e) {
+							throw new Error(`Failed to set field '${key}'`, { cause: e });
+						}
+					},
+					enumerable: true,
+				});
+			}
 		} else {
 			// standard primitive binding
 			Object.defineProperty(structObj, key, {
@@ -108,6 +140,7 @@ export function createStruct<T extends TagTypeShape>(
 					try {
 						return readPrimitive(view, type, fieldOffset);
 					} catch (e) {
+						console.error(e);
 						throw new Error(`Failed to get field '${key}'`, { cause: e });
 					}
 				},
@@ -229,6 +262,7 @@ export function createUnion<T extends TagTypeShape>(
 }
 
 function readPrimitive(view: DataView, type: FFIType, offset: number) {
+	//console.log({ view, type, offset });
 	switch (type) {
 		case FFIType.u8:
 			return view.getUint8(offset);
@@ -259,7 +293,7 @@ function readPrimitive(view: DataView, type: FFIType, offset: number) {
 		case FFIType.ptr:
 		case FFIType.function: {
 			const rawPtr = view.getBigUint64(offset, true);
-			return rawPtr === 0n ? null : rawPtr;
+			return rawPtr === 0n ? null : Number(rawPtr);
 		}
 		case FFIType.cstring: {
 			const strPtr = Number(view.getBigUint64(offset, true));
@@ -310,11 +344,11 @@ function writePrimitive(
 			return view.setFloat64(offset, val, true);
 		case FFIType.ptr:
 			if (val === null || val === 0) return view.setBigUint64(offset, 0n, true);
-			else return view.setBigUint64(offset, val, true);
+			else return view.setBigUint64(offset, BigInt(val), true);
 		case FFIType.function:
 			return view.setBigUint64(offset, val, true);
 		case FFIType.cstring: {
-			const buffer = Buffer.from(`${val}\0`, "utf8");
+			const buffer = B(val);
 			retained.push(buffer);
 			return view.setBigUint64(offset, BigInt(ptr(buffer)), true);
 		}
@@ -324,21 +358,42 @@ function writePrimitive(
 	}
 }
 
-/*export function createPtr<T extends TagType>(def: T, obj: Struct<T>): Ptr<T> {
-    const addr = ptr(obj.$raw);
+export function createPtr<T extends TagType>(
+	def: T,
+	addr: Pointer | null,
+): Ptr<T> {
+	const size = sizeof(def);
+	const res = { addr };
 
-    const res = { addr };
-    const size = sizeof(def);
-
-    Object.defineProperty(res, DEREF, {
-        get() {
-            const buffer = new Uint8Array(toArrayBuffer(res.addr, 0, size));
-            return createView(def, undefined, buffer);
-        },
-        enumerable: true,
-    });
-    return res as Ptr<T>;
-}*/
+	Object.defineProperty(res, DEREF, {
+		get() {
+			if (addr === null) {
+				throw new Error("Cannot dereference null Ptr");
+			}
+			const buffer = new Uint8Array(toArrayBuffer(addr, 0, size));
+			switch (def[TAG_TYPE_KIND]) {
+				case TagTypeKind.STRUCT:
+					return createStruct(def as StructDef<T>, undefined, buffer);
+				case TagTypeKind.UNION:
+					return createUnion(def as UnionDef<T>, undefined, buffer);
+			}
+		},
+		set(value) {
+			if (addr === null) {
+				throw new Error("Cannot dereference null ptr");
+			}
+			const buffer = new Uint8Array(toArrayBuffer(addr, 0, size));
+			if (value[IS_STRUCT]) {
+				// fast path: if assigning a struct, do direct memory copy
+				buffer.set(value.$raw);
+				return;
+			}
+			throw new Error("TODO");
+		},
+		enumerable: true,
+	});
+	return res as Ptr<T>;
+}
 
 export function createArr<T extends TagTypeShape>(
 	def: StructDef<T>,
@@ -387,7 +442,7 @@ export function createArr<T extends TagTypeShape>(
 						(view as any)[k] = value[k];
 					}
 				} catch (e) {
-					throw new Error(`Failed to get field '${i}'`, { cause: e });
+					throw new Error(`Failed to set field '${i}'`, { cause: e });
 				}
 			},
 			enumerable: true,

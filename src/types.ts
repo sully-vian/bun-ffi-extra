@@ -20,7 +20,7 @@ export type MapFFIType = {
 	[FFIType.i64_fast]: bigint;
 	[FFIType.f64]: number;
 
-	[FFIType.ptr]: bigint;
+	[FFIType.ptr]: number;
 	[FFIType.cstring]: string;
 	[FFIType.function]: JSCallback | Pointer | null;
 	[FFIType.buffer]: never;
@@ -85,7 +85,7 @@ export type Infer<T> =
 			? Union<Shape>
 			: never;
 
-export type FieldType = FFIType | TagType;
+export type FieldType = FFIType | TagType | PtrDef<any>;
 
 export type TagTypeShape = { [key: string]: FieldType };
 
@@ -94,6 +94,7 @@ export type TagType = StructDef<TagTypeShape> | UnionDef<TagTypeShape>;
 export enum TagTypeKind { // for runtime checks
 	STRUCT,
 	UNION,
+	PTR,
 }
 
 /* ------------------ */
@@ -160,6 +161,18 @@ export function union<T extends TagTypeShape>(def: T): UnionDef<T> {
 	};
 }
 
+export type PtrDef<T extends TagType> = {
+	readonly [TAG_TYPE_KIND]: TagTypeKind.PTR;
+	readonly def: T;
+};
+
+export function pointer<T extends TagType>(def: T): PtrDef<T> {
+	return {
+		[TAG_TYPE_KIND]: TagTypeKind.PTR,
+		def,
+	};
+}
+
 /* ----------------------- */
 /* C INSTANCES DEFINITIONS */
 /* ----------------------- */
@@ -169,9 +182,11 @@ type ViewFields<T extends TagTypeShape> = {
 		? Struct<Shape>
 		: T[K] extends UnionDef<infer Shape>
 			? Union<Shape>
-			: T[K] extends keyof MapFFIType
-				? MapFFIType[T[K]]
-				: never;
+			: T[K] extends PtrDef<infer Pointed>
+				? Ptr<Pointed>
+				: T[K] extends keyof MapFFIType
+					? MapFFIType[T[K]]
+					: never;
 };
 
 type MemoryView = {
@@ -185,11 +200,10 @@ export type Union<T extends TagTypeShape> = ViewFields<T> & MemoryView;
 
 export const DEREF = "_"; // for non-verbose access
 
-/*export type Ptr<T extends TagType> = {
-    readonly addr: Pointer;
-    readonly [DEREF]: Struct<T>;
-};*/
-export const NULL = 0 as Pointer;
+export type Ptr<T extends TagType> = {
+	readonly addr: Pointer | null;
+	[DEREF]: Infer<T>;
+};
 
 export type Arr<T extends TagTypeShape> = {
 	[index: number]: Struct<T> | ViewFields<T>;

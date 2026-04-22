@@ -3,7 +3,7 @@ import { beforeAll, expect, test } from "bun:test";
 import { join } from "node:path";
 import { createStruct, struct } from "../";
 
-const cFileName = "test.c";
+const cFileName = "main.c";
 const cPath = join(import.meta.dir, cFileName);
 
 const libDef = {
@@ -19,7 +19,7 @@ const libDef = {
 	modify_point: { args: [FFIType.ptr], returns: FFIType.void },
 	modify_nested_node: { args: [FFIType.ptr], returns: FFIType.void },
 	fill_ptr_struct: { args: [FFIType.ptr], returns: FFIType.void },
-};
+} as const;
 
 let lib: ReturnType<typeof cc<typeof libDef>>;
 
@@ -215,5 +215,5 @@ test("reads C-strings and raw pointers", () => {
 
 	expect(s.name).toBe("Hello from C FFI!");
 	// 0xDEADBEEF in decimal is 3735928559
-	expect(s.data_ptr).toBe(3735928559n);
+	expect(s.data_ptr).toBe(3735928559);
 });

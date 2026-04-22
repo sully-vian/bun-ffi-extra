@@ -11,7 +11,7 @@ const libDef = {
 	verify_union_float: { args: [FFIType.ptr], returns: FFIType.f32 },
 	verify_data_union: { args: [FFIType.ptr], returns: FFIType.u64 },
 	verify_variant: { args: [FFIType.ptr], returns: FFIType.f64 },
-};
+} as const;
 
 let lib: ReturnType<typeof cc<typeof libDef>>;
 

@@ -86,12 +86,13 @@ export function getLayoutInfo(
 		let fieldAlign = 1;
 
 		if (typeof type === "object") {
-			fieldSize = type[LAYOUT].size;
-			fieldAlign = type[LAYOUT].align;
-			const fieldKind = type[TAG_TYPE_KIND];
-			const nestedInfo = getLayoutInfo(type, fieldKind); // TODO: fix
-			fieldSize = nestedInfo.size;
-			fieldAlign = nestedInfo.align;
+			if (type[TAG_TYPE_KIND] === TagTypeKind.PTR) {
+				fieldSize = POINTER_SIZE;
+				fieldAlign = POINTER_SIZE;
+			} else {
+				fieldSize = type[LAYOUT].size;
+				fieldAlign = type[LAYOUT].align;
+			}
 		} else {
 			const layout = TYPE_LAYOUT[type];
 			if (!layout || layout.size === 0) {
@@ -128,6 +129,10 @@ export function getLayoutInfo(
 		}
 		case TagTypeKind.UNION: {
 			totalSize = Math.ceil(maxSize / maxAlign) * maxAlign;
+			break;
+		}
+		case TagTypeKind.PTR: {
+			totalSize = POINTER_SIZE;
 			break;
 		}
 	}

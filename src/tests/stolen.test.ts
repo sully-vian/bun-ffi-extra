@@ -1,7 +1,7 @@
 import { cc, FFIType, type Pointer, ptr, toArrayBuffer } from "bun:ffi";
 import { beforeAll, describe, expect, it } from "bun:test";
 import { join } from "node:path";
-import { createArr, createStruct, sizeof, struct } from "..";
+import { B, createArr, createStruct, sizeof, struct } from "..";
 
 const cFileName = "stolen.c";
 const cPath = join(import.meta.dir, cFileName);
@@ -34,7 +34,7 @@ const libDef = {
 		args: [FFIType.ptr, FFIType.u64],
 		returns: FFIType.bool,
 	},
-};
+} as const;
 
 let lib: ReturnType<typeof cc<typeof libDef>>;
 
@@ -132,7 +132,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 				1,
 				0,
 				0,
-				ptr(Buffer.from("XXX")),
+				ptr(B`XXX`),
 				3,
 			);
 			expect(isValid).toBeTrue();
@@ -146,9 +146,9 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 				priority: 1,
 				hl_ref: 20,
 				conceal_text_ptr: "Hello🌍",
-				conceal_text_len: BigInt(Buffer.from("Hello🌍").length),
+				conceal_text_len: BigInt(B`Hello🌍`.length),
 			});
-			const encodedText = Buffer.from("Hello🌍");
+			const encodedText = B`Hello🌍`;
 
 			const isValid = lib.symbols.validateHighlight(
 				view.$raw,
@@ -214,7 +214,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 					priority: 1,
 					hl_ref: 20,
 					conceal_text_ptr: "Hello🌍",
-					conceal_text_len: BigInt(Buffer.from("Hello🌍").length),
+					conceal_text_len: BigInt(B`Hello🌍`.length),
 				};
 
 				// Validate entire list with C
@@ -254,7 +254,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 
 				// Validate each struct individually by slicing the buffer
 				const size = sizeof(Highlight);
-				const testBuffer = Buffer.from("Test");
+				const testBuffer = B`Test`;
 
 				const h1Valid = lib.symbols.validateHighlight(
 					view.$raw.slice(0, size),
@@ -263,7 +263,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 					1,
 					0,
 					0,
-					"",
+					B``,
 					0,
 				);
 				expect(h1Valid).toBeTrue();
@@ -287,7 +287,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 					3,
 					2,
 					10,
-					"",
+					B``,
 					0,
 				);
 				expect(h3Valid).toBeTrue();

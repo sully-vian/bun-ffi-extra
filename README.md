@@ -16,6 +16,7 @@ bun run build # create dist package
 
 ## TODO
 
+- [ ] Make Field type translation correspond to the maps defined in `ffi.d.ts`
 - [ ] C unions: [Stack Overflow](https://stackoverflow.com/questions/71476166/create-c-style-union-in-ts-type-system)
     - [x] Implement
     - [x] Test
