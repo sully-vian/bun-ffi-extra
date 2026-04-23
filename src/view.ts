@@ -148,6 +148,7 @@ export function createStruct<T extends TagTypeShape>(
 					try {
 						writePrimitive(view, type, fieldOffset, val, retainedStrings);
 					} catch (e) {
+						console.log(e);
 						throw new Error(`Failed to set field '${key}'`, { cause: e });
 					}
 				},
@@ -346,7 +347,8 @@ function writePrimitive(
 			if (val === null || val === 0) return view.setBigUint64(offset, 0n, true);
 			else return view.setBigUint64(offset, BigInt(val), true);
 		case FFIType.function:
-			return view.setBigUint64(offset, val, true);
+			console.log(typeof val.ptr);
+			return view.setBigUint64(offset, BigInt(val.ptr), true);
 		case FFIType.cstring: {
 			const buffer = B(val);
 			retained.push(buffer);
@@ -451,6 +453,6 @@ export function createArr<T extends TagTypeShape>(
 	return target as Arr<T>;
 }
 
-export function B(strings: TemplateStringsArray) {
-	return Buffer.from(`${strings}\0`);
+export function B(str: TemplateStringsArray | string) {
+	return Buffer.from(`${str}\0`);
 }

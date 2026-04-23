@@ -16,6 +16,14 @@ bun run build # create dist package
 
 ## TODO
 
+- [ ] Rewrite readPrimitive and writePrimitive for better type safety and speed
+- [ ] Function Pointers
+    - [ ] Implement
+        - [ ] use `JSCallBack.ptr` to write
+        - [ ] use `CFunction` to read
+        - [ ] Create a `FunPtr` type with specified return and arg type (mimic C function pointer)
+    - [ ] Test
+    - [ ] Document
 - [ ] Make Field type translation correspond to the maps defined in `ffi.d.ts`
 - [ ] C unions: [Stack Overflow](https://stackoverflow.com/questions/71476166/create-c-style-union-in-ts-type-system)
     - [x] Implement

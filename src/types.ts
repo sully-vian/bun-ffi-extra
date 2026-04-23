@@ -22,7 +22,7 @@ export type MapFFIType = {
 
 	[FFIType.ptr]: number;
 	[FFIType.cstring]: string;
-	[FFIType.function]: JSCallback | Pointer | null;
+	[FFIType.function]: JSCallback;
 	[FFIType.buffer]: never;
 	[FFIType.napi_env]: never;
 	[FFIType.napi_value]: never;

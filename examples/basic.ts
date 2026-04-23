@@ -60,3 +60,6 @@ u.f = 420.69; // overwrites u.i
 const b = B`Helloéé, World`;
 console.log(b);
 console.log(b.toString());
+const b1 = B("Helloéé, World");
+console.log(b1);
+console.log(b1.toString());
