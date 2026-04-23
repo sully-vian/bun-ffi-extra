@@ -86,7 +86,10 @@ export function getLayoutInfo(
 		let fieldAlign = 1;
 
 		if (typeof type === "object") {
-			if (type[TAG_TYPE_KIND] === TagTypeKind.PTR) {
+			if (
+				type[TAG_TYPE_KIND] === TagTypeKind.PTR ||
+				type[TAG_TYPE_KIND] === TagTypeKind.FUNPTR
+			) {
 				fieldSize = POINTER_SIZE;
 				fieldAlign = POINTER_SIZE;
 			} else {
@@ -131,7 +134,8 @@ export function getLayoutInfo(
 			totalSize = Math.ceil(maxSize / maxAlign) * maxAlign;
 			break;
 		}
-		case TagTypeKind.PTR: {
+		case TagTypeKind.PTR:
+		case TagTypeKind.FUNPTR: {
 			totalSize = POINTER_SIZE;
 			break;
 		}

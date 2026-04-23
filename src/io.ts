@@ -1,7 +1,15 @@
-import { CString, FFIType, type Pointer, ptr } from "bun:ffi";
+import {
+	CFunction,
+	CString,
+	FFIType,
+	JSCallback,
+	type Pointer,
+	ptr,
+} from "bun:ffi";
+import type { FunPtrDef } from "./types";
 
 export const PRIMITIVE_READERS: {
-	[K in FFIType]: (view: DataView, offset: number) => any;
+	[K in FFIType]: (view: DataView, offset: number, def?: FunPtrDef) => any;
 } = {
 	[FFIType.u8]: (view, offset) => view.getUint8(offset),
 	[FFIType.i8]: (view, offset) => view.getInt8(offset),
@@ -21,9 +29,9 @@ export const PRIMITIVE_READERS: {
 		const rawPtr = view.getBigUint64(offset, true);
 		return rawPtr === 0n ? null : Number(rawPtr);
 	},
-	[FFIType.function]: (view, offset) => {
-		const rawPtr = view.getBigUint64(offset, true);
-		return rawPtr === 0n ? null : Number(rawPtr);
+	[FFIType.function]: (view, offset, def) => {
+		const addr = view.getBigUint64(offset, true);
+		return CFunction({ ...def, ptr: Number(addr) as Pointer });
 	},
 	[FFIType.cstring]: (view, offset) => {
 		const strPtr = Number(view.getBigUint64(offset, true));
@@ -36,7 +44,12 @@ export const PRIMITIVE_READERS: {
 };
 
 export const PRIMITIVE_WRITERS: {
-	[K in FFIType]: (view: DataView, offset: number, val: any) => void;
+	[K in FFIType]: (
+		view: DataView,
+		offset: number,
+		val: any,
+		def?: FunPtrDef,
+	) => void;
 } = {
 	[FFIType.u8]: (view, offset, val) => view.setUint8(offset, val),
 	[FFIType.i8]: (view, offset, val) => view.setInt8(offset, val),
@@ -59,8 +72,18 @@ export const PRIMITIVE_WRITERS: {
 		if (val === null || val === 0) view.setBigUint64(offset, 0n, true);
 		else view.setBigUint64(offset, BigInt(val), true);
 	},
-	[FFIType.function]: (view, offset, val) =>
-		view.setBigUint64(offset, BigInt(val.ptr), true),
+	[FFIType.function]: (
+		view,
+		offset,
+		val: ((...args: any[]) => any) | null,
+		def,
+	) => {
+		if (val === null) return view.setBigUint64(offset, 0n, true);
+		if (def === undefined) throw new Error("def is undefined");
+		const cb = new JSCallback(val, def);
+		if (cb.ptr === null) throw new Error("cb.ptr is null");
+		view.setBigUint64(offset, BigInt(cb.ptr), true);
+	},
 	[FFIType.cstring]: (view, offset, val) => {
 		const buffer = B(val);
 		view.setBigUint64(offset, BigInt(ptr(buffer)), true);

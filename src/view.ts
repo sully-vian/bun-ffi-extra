@@ -1,4 +1,10 @@
-import { FFIType, type Pointer, toArrayBuffer } from "bun:ffi";
+import {
+	CFunction,
+	FFIType,
+	JSCallback,
+	type Pointer,
+	toArrayBuffer,
+} from "bun:ffi";
 import { PRIMITIVE_READERS, PRIMITIVE_WRITERS } from "./io";
 import { sizeof } from "./layout";
 import {
@@ -62,7 +68,19 @@ export function createStruct<T extends TagTypeShape>(
 		const fieldOffset = def[LAYOUT].offsets[key];
 
 		if (typeof type === "object") {
-			if (type[TAG_TYPE_KIND] === TagTypeKind.PTR) {
+			if (type[TAG_TYPE_KIND] === TagTypeKind.FUNPTR) {
+				const reader = PRIMITIVE_READERS[FFIType.function];
+				const writer = PRIMITIVE_WRITERS[FFIType.function];
+				Object.defineProperty(structObj, key, {
+					get() {
+						return reader(view, fieldOffset, type);
+					},
+					set(val) {
+						writer(view, fieldOffset, val, type);
+					},
+					enumerable: true,
+				});
+			} else if (type[TAG_TYPE_KIND] === TagTypeKind.PTR) {
 				const ptrReader = PRIMITIVE_READERS[FFIType.ptr];
 				const ptrWriter = PRIMITIVE_WRITERS[FFIType.ptr];
 				Object.defineProperty(structObj, key, {
@@ -133,7 +151,6 @@ export function createStruct<T extends TagTypeShape>(
 					try {
 						return reader(view, fieldOffset);
 					} catch (e) {
-						console.error(e);
 						throw new Error(`Failed to get field '${key}'`, { cause: e });
 					}
 				},
@@ -141,7 +158,6 @@ export function createStruct<T extends TagTypeShape>(
 					try {
 						writer(view, fieldOffset, val);
 					} catch (e) {
-						console.log(e);
 						throw new Error(`Failed to set field '${key}'`, { cause: e });
 					}
 				},

@@ -1,4 +1,4 @@
-import type { FFIType, JSCallback, Pointer } from "bun:ffi";
+import type { FFIFunction, FFIType, JSCallback, Pointer } from "bun:ffi";
 import { getLayoutInfo, type LayoutInfo } from "./layout";
 
 export type MapFFIType = {
@@ -85,7 +85,7 @@ export type Infer<T> =
 			? Union<Shape>
 			: never;
 
-export type FieldType = FFIType | TagType | PtrDef<any>;
+export type FieldType = FFIType | TagType | PtrDef<any> | FunPtrDef;
 
 export type TagTypeShape = { [key: string]: FieldType };
 
@@ -95,6 +95,7 @@ export enum TagTypeKind { // for runtime checks
 	STRUCT,
 	UNION,
 	PTR,
+	FUNPTR,
 }
 
 /* ------------------ */
@@ -173,6 +174,14 @@ export function pointer<T extends TagType>(def: T): PtrDef<T> {
 	};
 }
 
+export type FunPtrDef = FFIFunction & {
+	readonly [TAG_TYPE_KIND]: TagTypeKind.FUNPTR;
+};
+
+export function funPtr(def: FFIFunction): FunPtrDef {
+	return { ...def, [TAG_TYPE_KIND]: TagTypeKind.FUNPTR };
+}
+
 /* ----------------------- */
 /* C INSTANCES DEFINITIONS */
 /* ----------------------- */
@@ -184,9 +193,11 @@ type ViewFields<T extends TagTypeShape> = {
 			? Union<Shape>
 			: T[K] extends PtrDef<infer Pointed>
 				? Ptr<Pointed>
-				: T[K] extends keyof MapFFIType
-					? MapFFIType[T[K]]
-					: never;
+				: T[K] extends FunPtrDef
+					? ((...args: any[]) => any) | null
+					: T[K] extends keyof MapFFIType
+						? MapFFIType[T[K]]
+						: never;
 };
 
 type MemoryView = {

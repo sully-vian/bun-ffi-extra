@@ -1,7 +1,7 @@
-import { cc, FFIType } from "bun:ffi";
+import { cc, FFIType, ptr } from "bun:ffi";
 import { beforeAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { createStruct, struct } from "..";
+import { createStruct, funPtr, struct } from "..";
 
 const cFileName = "function.c";
 const cPath = join(import.meta.dir, cFileName);
@@ -58,8 +58,6 @@ describe("Structs with function pointers", () => {
 
 		// Read the pointer back in JS. view.ts casts non-zero BigInts to Number
 		expect(myStruct.callback).not.toBeNull();
-		expect(typeof myStruct.callback).toBe("number");
-		expect(myStruct.callback).toBeGreaterThan(0);
 
 		// Execute the pointer in C just to verify it points to the valid native multiplier
 		const result = lib.symbols.execute_callback(myStruct.$raw, 5, 5);
@@ -70,7 +68,7 @@ describe("Structs with function pointers", () => {
 		const myStruct = createStruct(CallbackStruct, { id: 3 });
 
 		// Set it explicitly to a 0/null state
-		myStruct.callback = 0n as any;
+		myStruct.callback = null;
 
 		const result = lib.symbols.execute_callback(myStruct.$raw, 10, 20);
 
