@@ -16,7 +16,7 @@ bun run build # create dist package
 
 ## TODO
 
-- [ ] Rewrite readPrimitive and writePrimitive for better type safety and speed
+- [ ] Rewrite `PRIMITIVE_READERS` and `PRIMITIVE_WRITERS` for better type safety
 - [ ] Function Pointers
     - [ ] Implement
         - [ ] use `JSCallBack.ptr` to write
@@ -38,8 +38,8 @@ bun run build # create dist package
     - [x] Implement
     - [x] Test
     - [ ] Document
-- [ ] Optimizations
-    - [ ] decide read and write case methods when defining properties, avoid switch statement traversal on every access
+- [x] Optimizations
+    - [x] decide read and write case methods when defining properties, avoid switch statement traversal on every access
 
 ## Ideas
 
