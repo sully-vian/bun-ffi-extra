@@ -76,7 +76,7 @@ describe("bun-ffi-extra C interop", () => {
 			const cBuffer = new Uint8Array(
 				toArrayBuffer(cPersonPtr as Pointer, 0, size),
 			);
-			const unpacked = createStruct(SimplePerson, undefined, cBuffer);
+			const unpacked = createStruct(SimplePerson, {}, cBuffer);
 
 			expect(unpacked.age).toBe(30);
 			expect(unpacked.height).toBeCloseTo(175.5, 1);
@@ -95,7 +95,7 @@ describe("bun-ffi-extra C interop", () => {
 			const isValid = lib.symbols.validatePerson(view.$raw, 33, 182.3, 78.5);
 			expect(isValid).toBeTrue();
 
-			const unpacked = createStruct(SimplePerson, undefined, view.$raw);
+			const unpacked = createStruct(SimplePerson, {}, view.$raw);
 			expect(unpacked.age).toBe(33);
 			expect(unpacked.height).toBeCloseTo(182.3, 1);
 			expect(unpacked.weight).toBeCloseTo(78.5, 1);
