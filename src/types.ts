@@ -216,15 +216,7 @@ export type Ptr<T extends TagType> = {
 	[DEREF]: Infer<T>;
 };
 
-export type Arr<T extends TagTypeShape> = {
-	[index: number]: Struct<T> | ViewFields<T>;
-	readonly $raw: Uint8Array;
-	readonly $length: number;
-	readonly [IS_ARR]: true;
-};
-
 export const IS_STRUCT = Symbol("IS_STRUCT");
-export const IS_ARR = Symbol("IS_ARR");
 export const IS_VIEW = Symbol("IS_VIEW");
 export const TAG_TYPE_KIND = Symbol("TAG_TYPE_KIND");
 export const LAYOUT = Symbol("LAYOUT");

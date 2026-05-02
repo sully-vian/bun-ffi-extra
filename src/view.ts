@@ -1,14 +1,7 @@
-import {
-	CFunction,
-	FFIType,
-	JSCallback,
-	type Pointer,
-	toArrayBuffer,
-} from "bun:ffi";
+import { FFIType, type Pointer, toArrayBuffer } from "bun:ffi";
 import { PRIMITIVE_READERS, PRIMITIVE_WRITERS } from "./io";
 import { sizeof } from "./layout";
 import {
-	type Arr,
 	DEREF,
 	type DeepPartial,
 	IS_STRUCT,
@@ -302,60 +295,4 @@ export function createPtr<T extends TagType>(
 		enumerable: true,
 	});
 	return res as Ptr<T>;
-}
-
-export function createArr<T extends TagTypeShape>(
-	def: StructDef<T>,
-	arrSize: number,
-	buffer?: Uint8Array,
-	offset: number = 0,
-): Arr<T> {
-	const elementSize = sizeof(def);
-	const totalSize = elementSize * arrSize;
-
-	const rootBuffer = buffer || new Uint8Array(totalSize);
-	const arrBuffer = rootBuffer.subarray(offset, totalSize + offset);
-
-	const target: Partial<Arr<T>> = { $raw: arrBuffer, $length: arrSize };
-
-	const viewCache = new Array(arrSize);
-
-	// pre-bind all array indices
-	for (let i = 0; i < arrSize; i++) {
-		Object.defineProperty(target, i, {
-			get(): Struct<T> {
-				try {
-					if (!viewCache[i]) {
-						const elementOffset = i * elementSize;
-						viewCache[i] = createStruct(
-							def,
-							undefined,
-							arrBuffer,
-							elementOffset,
-						);
-					}
-					return viewCache[i];
-				} catch (e) {
-					throw new Error(`Failed to get field '${i}'`, { cause: e });
-				}
-			},
-			set(value) {
-				try {
-					if (!value) return;
-
-					const elementOffset = i * elementSize;
-					if (value[IS_STRUCT]) return arrBuffer.set(value.$raw, elementOffset);
-
-					const view = target[i];
-					for (const k of Object.keys(value)) {
-						(view as any)[k] = value[k];
-					}
-				} catch (e) {
-					throw new Error(`Failed to set field '${i}'`, { cause: e });
-				}
-			},
-			enumerable: true,
-		});
-	}
-	return target as Arr<T>;
 }

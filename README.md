@@ -16,23 +16,19 @@ bun run build # create dist package
 
 ## TODO
 
+- [ ] Rewrite `Ptr` as `Pointer & { [index: number]: T }` for better DX and C arrays ar the same time
 - [ ] Rewrite `PRIMITIVE_READERS` and `PRIMITIVE_WRITERS` for better type safety
 - [ ] Function Pointers
-    - [ ] Implement
-        - [ ] use `JSCallBack.ptr` to write
-        - [ ] use `CFunction` to read
-        - [ ] Create a `FunPtr` type with specified return and arg type (mimic C function pointer)
-    - [ ] Test
+    - [x] Implement
+        - [x] use `JSCallBack.ptr` to write
+        - [x] use `CFunction` to read
+        - [x] Create a `FunPtr` type with specified return and arg type (mimic C function pointer)
+    - [x] Test
     - [ ] Document
 - [ ] Make Field type translation correspond to the maps defined in `ffi.d.ts`
 - [ ] C unions: [Stack Overflow](https://stackoverflow.com/questions/71476166/create-c-style-union-in-ts-type-system)
     - [x] Implement
     - [x] Test
-    - [ ] Document
-- [ ] C arrays
-    - [x] Implement
-    - [x] Test
-    - [x] Maybe [statically bind the indexes](#static-index-properties)
     - [ ] Document
 - [ ] C Structs
     - [x] Implement
