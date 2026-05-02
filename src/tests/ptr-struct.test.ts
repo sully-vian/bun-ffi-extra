@@ -58,9 +58,6 @@ describe("Structs with nested Pointers", () => {
 		const n = cNodeView._;
 
 		expect(n.id).toBe(42);
-		console.debug(
-			Object.getOwnPropertyDescriptor(n, "point_ptr").get.toString(),
-		);
 		expect(n.point_ptr).not.toBeNull();
 		expect(n.point_ptr.addr).not.toBeNull();
 
