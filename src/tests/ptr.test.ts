@@ -1,7 +1,7 @@
 import { cc, FFIType, ptr } from "bun:ffi";
 import { beforeAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { createPtr, createStruct, struct } from "..";
+import { createPtr, createStruct, pointer, struct } from "..";
 
 const cFileName = "ptr.c";
 const cPath = join(import.meta.dir, cFileName);
@@ -15,6 +15,7 @@ const libDef = {
 let lib: ReturnType<typeof cc<typeof libDef>>;
 
 const Point = struct({ x: FFIType.i32, y: FFIType.i32 });
+const PointPtr = pointer(Point);
 
 describe("C Pointers", () => {
 	beforeAll(() => {
@@ -23,7 +24,7 @@ describe("C Pointers", () => {
 
 	test("reads a struct pointer returned from C", () => {
 		const rawPtr = lib.symbols.get_global_point();
-		const p = createPtr(Point, rawPtr);
+		const p = createPtr(PointPtr, rawPtr);
 
 		// Dereference `_` to access the struct
 		expect(p._.x).toBe(10);
@@ -32,7 +33,7 @@ describe("C Pointers", () => {
 
 	test("mutates C memory directly from JS via pointer", () => {
 		const rawPtr = lib.symbols.get_global_point();
-		const p = createPtr(Point, rawPtr);
+		const p = createPtr(PointPtr, rawPtr);
 
 		// Mutate properties directly
 		p._.x = 100;
@@ -45,7 +46,7 @@ describe("C Pointers", () => {
 
 	test("assigns a whole partial object to a C pointer", () => {
 		const rawPtr = lib.symbols.get_global_point();
-		const p = createPtr(Point, rawPtr);
+		const p = createPtr(PointPtr, rawPtr);
 
 		// Use the custom setter mapped to `_`
 		p._ = createStruct(Point, { x: 42, y: 42 });
@@ -56,7 +57,7 @@ describe("C Pointers", () => {
 
 	test("creates a pointer from a JS struct and passes it to C", () => {
 		const myPoint = createStruct(Point, { x: 5, y: 5 });
-		const p = createPtr(Point, ptr(myPoint.$raw));
+		const p = createPtr(PointPtr, ptr(myPoint.$raw));
 
 		// Pass the extracted memory address (`addr`) to C
 		lib.symbols.increment_point(p.addr);
@@ -70,7 +71,7 @@ describe("C Pointers", () => {
 	});
 
 	test("throws an error when dereferencing a null pointer", () => {
-		const nullPtr = createPtr(Point, null);
+		const nullPtr = createPtr(PointPtr, null);
 
 		expect(nullPtr.addr).toBeNull();
 		expect(() => nullPtr._).toThrow(); // deref of null pointer
