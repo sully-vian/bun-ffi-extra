@@ -1,19 +1,24 @@
 import { FFIType, type Pointer, toArrayBuffer } from "bun:ffi";
 import { PRIMITIVE_READERS, PRIMITIVE_WRITERS } from "./io";
-import { sizeof } from "./layout";
+import { POINTER_SIZE, TYPE_LAYOUT } from "./layout";
 import {
 	DEREF,
 	type DeepPartial,
+	type FieldType,
+	FUNPTR,
 	IS_STRUCT,
 	LAYOUT,
 	type OnlyOne,
+	PTR,
 	type Ptr,
+	type PtrDef,
+	STRUCT,
 	type Struct,
 	type StructDef,
 	TAG_TYPE_KIND,
-	type TagType,
 	TagTypeKind,
 	type TagTypeShape,
+	UNION,
 	type Union,
 	type UnionDef,
 } from "./types";
@@ -260,39 +265,129 @@ export function createUnion<T extends TagTypeShape>(
 	return unionObj as Struct<T>;
 }
 
-export function createPtr<T extends TagType>(
-	def: T,
+export function createPtr<T extends FieldType>(
+	def: PtrDef<T>,
 	addr: Pointer | null,
 ): Ptr<T> {
-	const size = sizeof(def);
+	let size: number;
+	const pointedDef: FieldType = def.def;
+	if (typeof pointedDef !== "object") {
+		size = TYPE_LAYOUT[pointedDef].size; // FFIType
+	} else if (
+		pointedDef[TAG_TYPE_KIND] === TagTypeKind.PTR ||
+		pointedDef[TAG_TYPE_KIND] === TagTypeKind.FUNPTR
+	) {
+		// pointer of function pointer
+		size = POINTER_SIZE;
+	} else {
+		size = pointedDef[LAYOUT].size; // struct or union
+	}
 	const res = { addr };
 
-	Object.defineProperty(res, DEREF, {
-		get() {
-			if (addr === null) {
-				throw new Error("Cannot dereference null Ptr");
+	const proxy = new Proxy(res, {
+		get(target, prop) {
+			if (prop === "addr") return target.addr;
+			if (prop === DEREF) prop = "0"; // p[0] <=> *p
+
+			if (typeof prop === "string" && !Number.isNaN(Number(prop))) {
+				if (target.addr === null)
+					throw new Error("Cannot dereference null Ptr");
+
+				const index = Number(prop);
+				const offset = index * size;
+
+				if (typeof pointedDef === "object") {
+					switch (pointedDef[TAG_TYPE_KIND]) {
+						case STRUCT: {
+							const buffer = new Uint8Array(
+								toArrayBuffer(target.addr, offset, size),
+							);
+							return createStruct(pointedDef, {}, buffer);
+						}
+						case UNION: {
+							const buffer = new Uint8Array(
+								toArrayBuffer(target.addr, offset, size),
+							);
+							return createUnion(pointedDef, {}, buffer);
+						}
+						case PTR: {
+							const view = new DataView(
+								toArrayBuffer(target.addr, offset, size),
+							);
+							const rawPtr = PRIMITIVE_READERS[FFIType.ptr](view, 0);
+							return createPtr(pointedDef, rawPtr as Pointer | null);
+						}
+						case FUNPTR: {
+							const view = new DataView(
+								toArrayBuffer(target.addr, offset, size),
+							);
+							return PRIMITIVE_READERS[FFIType.function](view, 0, pointedDef);
+						}
+					}
+				} else {
+					const view = new DataView(toArrayBuffer(target.addr, offset, size));
+					return PRIMITIVE_READERS[pointedDef](view, 0);
+				}
 			}
-			const buffer = new Uint8Array(toArrayBuffer(addr, 0, size));
-			switch (def[TAG_TYPE_KIND]) {
-				case TagTypeKind.STRUCT:
-					return createStruct(def as StructDef<T>, undefined, buffer);
-				case TagTypeKind.UNION:
-					return createUnion(def as UnionDef<T>, undefined, buffer);
-			}
+			return Reflect.get(target, prop);
 		},
-		set(value) {
-			if (addr === null) {
-				throw new Error("Cannot dereference null ptr");
+		set(target, prop, value) {
+			if (prop === "addr") {
+				target.addr = value;
+				return true;
 			}
-			const buffer = new Uint8Array(toArrayBuffer(addr, 0, size));
-			if (value[IS_STRUCT]) {
-				// fast path: if assigning a struct, do direct memory copy
-				buffer.set(value.$raw);
-				return;
+			if (prop === DEREF) prop = "0";
+
+			if (typeof prop === "string" && !Number.isNaN(Number(prop))) {
+				if (target.addr === null)
+					throw new Error("Cannot dereference null Ptr");
+
+				const index = Number(prop);
+				const offset = index * size;
+
+				if (typeof pointedDef === "object") {
+					switch (pointedDef[TAG_TYPE_KIND]) {
+						case STRUCT:
+						case UNION: {
+							if (!value || !value.$raw)
+								throw new Error(
+									"Cannot assign non-view to struct/union pointer index.",
+								);
+							const buffer = new Uint8Array(
+								toArrayBuffer(target.addr, offset, size),
+							);
+							buffer.set(value.$raw); // direct memory copy
+							return true;
+						}
+						case PTR: {
+							const view = new DataView(
+								toArrayBuffer(target.addr, offset, size),
+							);
+							PRIMITIVE_WRITERS[FFIType.ptr](
+								view,
+								0,
+								value,
+								value ? value.addr : null,
+							);
+							return true;
+						}
+						case FUNPTR: {
+							const view = new DataView(
+								toArrayBuffer(target.addr, offset, size),
+							);
+							PRIMITIVE_WRITERS[FFIType.function](view, 0, value, pointedDef);
+							return true;
+						}
+					}
+				} else {
+					const view = new DataView(toArrayBuffer(target.addr, offset, size));
+					PRIMITIVE_WRITERS[pointedDef](view, 0, value);
+					return true;
+				}
 			}
-			throw new Error("TODO");
+			return Reflect.set(target, prop, value);
 		},
-		enumerable: true,
 	});
-	return res as Ptr<T>;
+
+	return proxy as Ptr<T>;
 }

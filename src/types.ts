@@ -97,6 +97,7 @@ export enum TagTypeKind { // for runtime checks
 	PTR,
 	FUNPTR,
 }
+export const { STRUCT, UNION, PTR, FUNPTR } = TagTypeKind;
 
 /* ------------------ */
 /* C TYPE DEFINITIONS */
@@ -162,12 +163,12 @@ export function union<T extends TagTypeShape>(def: T): UnionDef<T> {
 	};
 }
 
-export type PtrDef<T extends TagType> = {
+export type PtrDef<T extends FieldType> = {
 	readonly [TAG_TYPE_KIND]: TagTypeKind.PTR;
 	readonly def: T;
 };
 
-export function pointer<T extends TagType>(def: T): PtrDef<T> {
+export function pointer<T extends FieldType>(def: T): PtrDef<T> {
 	return {
 		[TAG_TYPE_KIND]: TagTypeKind.PTR,
 		def,
@@ -211,9 +212,10 @@ export type Union<T extends TagTypeShape> = ViewFields<T> & MemoryView;
 
 export const DEREF = "_"; // for non-verbose access
 
-export type Ptr<T extends TagType> = {
-	readonly addr: Pointer | null;
+export type Ptr<T extends FieldType> = {
+	addr: Pointer | null;
 	[DEREF]: Infer<T>;
+	[index: number]: Infer<T>;
 };
 
 export const IS_STRUCT = Symbol("IS_STRUCT");
