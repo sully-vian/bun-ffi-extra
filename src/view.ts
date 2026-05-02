@@ -84,7 +84,7 @@ export function createStruct<T extends TagTypeShape>(
 					get() {
 						try {
 							const rawPtr = ptrReader(view, fieldOffset);
-							return createPtr(type.def, rawPtr as Pointer | null);
+							return createPtr(type, rawPtr);
 						} catch (e) {
 							throw new Error(`Failed to get field '${key}'`, { cause: e });
 						}
@@ -200,43 +200,79 @@ export function createUnion<T extends TagTypeShape>(
 		const fieldOffset = def[LAYOUT].offsets[key];
 
 		if (typeof type === "object") {
-			// recursive binding for nested structs
-			let nestedView: Struct<any>;
-			switch (type[TAG_TYPE_KIND]) {
-				case STRUCT:
-					nestedView = createStruct(
-						type,
-						safeInit[key],
-						unionBuffer,
-						fieldOffset,
-					);
-					break;
-				case UNION:
-					nestedView = createUnion(
-						type,
-						safeInit[key],
-						unionBuffer,
-						fieldOffset,
-					);
-					break;
-			}
-			Object.defineProperty(unionObj, key, {
-				get: () => nestedView,
-				set(val) {
-					try {
-						// allow easy setting: parent.nested = { x: 10, y: 20 };
-						if (!val) return;
-						if (val[IS_STRUCT]) return unionBuffer.set(val.$raw, fieldOffset); // fast: direct memory copy
-
-						for (const k of Object.keys(val)) {
-							(nestedView as any)[k] = val[k];
+			if (type[TAG_TYPE_KIND] === FUNPTR) {
+				const reader = PRIMITIVE_READERS[FFIType.function];
+				const writer = PRIMITIVE_WRITERS[FFIType.function];
+				Object.defineProperty(unionObj, key, {
+					get() {
+						return reader(view, fieldOffset, type);
+					},
+					set(val) {
+						writer(view, fieldOffset, val, type);
+					},
+					enumerable: true,
+				});
+			} else if (type[TAG_TYPE_KIND] === PTR) {
+				const ptrReader = PRIMITIVE_READERS[FFIType.ptr];
+				const ptrWriter = PRIMITIVE_WRITERS[FFIType.ptr];
+				Object.defineProperty(unionObj, key, {
+					get() {
+						try {
+							const rawPtr = ptrReader(view, fieldOffset);
+							return createPtr(type, rawPtr);
+						} catch (e) {
+							throw new Error(`Failed to get field '${key}'`, { cause: e });
 						}
-					} catch (e) {
-						throw new Error(`Failed to set field '${key}'`, { cause: e });
-					}
-				},
-				enumerable: true,
-			});
+					},
+					set(val) {
+						try {
+							const addr = val ? val.addr : null;
+							ptrWriter(view, fieldOffset, addr);
+						} catch (e) {
+							throw new Error(`Failed to set field '${key}'`, { cause: e });
+						}
+					},
+					enumerable: true,
+				});
+			} else {
+				// recursive binding for nested structs
+				let nestedView: Struct<any>;
+				switch (type[TAG_TYPE_KIND]) {
+					case STRUCT:
+						nestedView = createStruct(
+							type,
+							safeInit[key],
+							unionBuffer,
+							fieldOffset,
+						);
+						break;
+					case UNION:
+						nestedView = createUnion(
+							type,
+							safeInit[key],
+							unionBuffer,
+							fieldOffset,
+						);
+						break;
+				}
+				Object.defineProperty(unionObj, key, {
+					get: () => nestedView,
+					set(val) {
+						try {
+							// allow easy setting: parent.nested = { x: 10, y: 20 };
+							if (!val) return;
+							if (val[IS_STRUCT]) return unionBuffer.set(val.$raw, fieldOffset); // fast: direct memory copy
+
+							for (const k of Object.keys(val)) {
+								(nestedView as any)[k] = val[k];
+							}
+						} catch (e) {
+							throw new Error(`Failed to set field '${key}'`, { cause: e });
+						}
+					},
+					enumerable: true,
+				});
+			}
 		} else {
 			// standard primitive binding
 			const reader = PRIMITIVE_READERS[type];
@@ -314,7 +350,7 @@ export function createPtr<T extends FieldType>(
 								toArrayBuffer(target.addr, offset, size),
 							);
 							const rawPtr = PRIMITIVE_READERS[FFIType.ptr](view, 0);
-							return createPtr(pointedDef, rawPtr as Pointer | null);
+							return createPtr(pointedDef, rawPtr);
 						}
 						case FUNPTR: {
 							const view = new DataView(
@@ -365,7 +401,6 @@ export function createPtr<T extends FieldType>(
 							PRIMITIVE_WRITERS[FFIType.ptr](
 								view,
 								0,
-								value,
 								value ? value.addr : null,
 							);
 							return true;

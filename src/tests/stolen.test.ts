@@ -1,7 +1,7 @@
 import { cc, FFIType, type Pointer, ptr, toArrayBuffer } from "bun:ffi";
 import { beforeAll, describe, expect, it } from "bun:test";
 import { join } from "node:path";
-import { B, createStruct, sizeof, struct } from "..";
+import { B, createPtr, createStruct, pointer, sizeof, struct } from "..";
 
 const cFileName = "stolen.c";
 const cPath = join(import.meta.dir, cFileName);
@@ -113,6 +113,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 		conceal_text_ptr: FFIType.cstring,
 		conceal_text_len: FFIType.u64,
 	});
+	const HighlightPtr = pointer(Highlight);
 
 	describe("Single struct packing", () => {
 		it("should pack a single highlight correctly for C", () => {
@@ -187,8 +188,8 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 		});
 
 		describe("List packing (TypeScript → C)", () => {
-			it.skip("should pack a list of highlights for C to consume", () => {
-				const foo = createArr(Highlight, 3);
+			it("should pack a list of highlights for C to consume", () => {
+				const foo = createPtr(HighlightPtr);
 				foo[0] = {
 					start: 6,
 					end: 11,
@@ -222,7 +223,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 				expect(isValid).toBeTrue();
 			});
 
-			it.skip("should pack list with mixed null and non-null text", () => {
+			it("should pack list with mixed null and non-null text", () => {
 				const view = createArr(Highlight, 3);
 				view[0] = {
 					start: 1,
@@ -295,7 +296,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 		});
 
 		describe("List unpacking (C → TypeScript)", () => {
-			it.skip("should unpack a C-created list of highlights", () => {
+			it("should unpack a C-created list of highlights", () => {
 				const cListPtr = lib.symbols.createHighlightList();
 				expect(cListPtr).not.toBeNull();
 
