@@ -1,11 +1,15 @@
 import { FFIType } from "bun:ffi";
 import {
+	FUNPTR,
 	LAYOUT,
 	type MapFFIType,
+	PTR,
+	STRUCT,
 	TAG_TYPE_KIND,
 	type TagType,
-	TagTypeKind,
+	type TagTypeKind,
 	type TagTypeShape,
+	UNION,
 } from "./types";
 
 export const POINTER_SIZE = (() => {
@@ -86,10 +90,7 @@ export function getLayoutInfo(
 		let fieldAlign = 1;
 
 		if (typeof type === "object") {
-			if (
-				type[TAG_TYPE_KIND] === TagTypeKind.PTR ||
-				type[TAG_TYPE_KIND] === TagTypeKind.FUNPTR
-			) {
+			if (type[TAG_TYPE_KIND] === PTR || type[TAG_TYPE_KIND] === FUNPTR) {
 				fieldSize = POINTER_SIZE;
 				fieldAlign = POINTER_SIZE;
 			} else {
@@ -108,7 +109,7 @@ export function getLayoutInfo(
 		maxAlign = Math.max(maxAlign, fieldAlign);
 
 		switch (kind) {
-			case TagTypeKind.STRUCT: {
+			case STRUCT: {
 				const padding =
 					(fieldAlign - (currentOffset % fieldAlign)) % fieldAlign;
 				currentOffset += padding;
@@ -116,7 +117,7 @@ export function getLayoutInfo(
 				currentOffset += fieldSize;
 				break;
 			}
-			case TagTypeKind.UNION: {
+			case UNION: {
 				offsets[key] = 0;
 				maxSize = Math.max(maxSize, fieldSize);
 				break;
@@ -126,16 +127,16 @@ export function getLayoutInfo(
 
 	let totalSize: number;
 	switch (kind) {
-		case TagTypeKind.STRUCT: {
+		case STRUCT: {
 			totalSize = Math.ceil(currentOffset / maxAlign) * maxAlign;
 			break;
 		}
-		case TagTypeKind.UNION: {
+		case UNION: {
 			totalSize = Math.ceil(maxSize / maxAlign) * maxAlign;
 			break;
 		}
-		case TagTypeKind.PTR:
-		case TagTypeKind.FUNPTR: {
+		case PTR:
+		case FUNPTR: {
 			totalSize = POINTER_SIZE;
 			break;
 		}

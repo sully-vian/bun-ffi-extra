@@ -128,8 +128,8 @@ export type StructDef<T extends TagTypeShape> = T & {
 export function struct<T extends TagTypeShape>(def: T): StructDef<T> {
 	return {
 		...def,
-		[LAYOUT]: getLayoutInfo(def, TagTypeKind.STRUCT),
-		[TAG_TYPE_KIND]: TagTypeKind.STRUCT,
+		[LAYOUT]: getLayoutInfo(def, STRUCT),
+		[TAG_TYPE_KIND]: STRUCT,
 	};
 }
 
@@ -158,8 +158,8 @@ export type UnionDef<T extends TagTypeShape> = T & {
 export function union<T extends TagTypeShape>(def: T): UnionDef<T> {
 	return {
 		...def,
-		[LAYOUT]: getLayoutInfo(def, TagTypeKind.UNION),
-		[TAG_TYPE_KIND]: TagTypeKind.UNION,
+		[LAYOUT]: getLayoutInfo(def, UNION),
+		[TAG_TYPE_KIND]: UNION,
 	};
 }
 
@@ -170,7 +170,7 @@ export type PtrDef<T extends FieldType> = {
 
 export function pointer<T extends FieldType>(def: T): PtrDef<T> {
 	return {
-		[TAG_TYPE_KIND]: TagTypeKind.PTR,
+		[TAG_TYPE_KIND]: PTR,
 		def,
 	};
 }
@@ -180,7 +180,7 @@ export type FunPtrDef = FFIFunction & {
 };
 
 export function funPtr(def: FFIFunction): FunPtrDef {
-	return { ...def, [TAG_TYPE_KIND]: TagTypeKind.FUNPTR };
+	return { ...def, [TAG_TYPE_KIND]: FUNPTR };
 }
 
 /* ----------------------- */
