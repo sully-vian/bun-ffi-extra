@@ -16,7 +16,6 @@ import {
 	type Struct,
 	type StructDef,
 	TAG_TYPE_KIND,
-	TagTypeKind,
 	type TagTypeShape,
 	UNION,
 	type Union,
@@ -66,7 +65,7 @@ export function createStruct<T extends TagTypeShape>(
 		const fieldOffset = def[LAYOUT].offsets[key];
 
 		if (typeof type === "object") {
-			if (type[TAG_TYPE_KIND] === TagTypeKind.FUNPTR) {
+			if (type[TAG_TYPE_KIND] === FUNPTR) {
 				const reader = PRIMITIVE_READERS[FFIType.function];
 				const writer = PRIMITIVE_WRITERS[FFIType.function];
 				Object.defineProperty(structObj, key, {
@@ -78,7 +77,7 @@ export function createStruct<T extends TagTypeShape>(
 					},
 					enumerable: true,
 				});
-			} else if (type[TAG_TYPE_KIND] === TagTypeKind.PTR) {
+			} else if (type[TAG_TYPE_KIND] === PTR) {
 				const ptrReader = PRIMITIVE_READERS[FFIType.ptr];
 				const ptrWriter = PRIMITIVE_WRITERS[FFIType.ptr];
 				Object.defineProperty(structObj, key, {
@@ -104,7 +103,7 @@ export function createStruct<T extends TagTypeShape>(
 				// recursive binding for nested structs
 				let nestedView: Struct<any>;
 				switch (type[TAG_TYPE_KIND]) {
-					case TagTypeKind.STRUCT:
+					case STRUCT:
 						nestedView = createStruct(
 							type,
 							safeInit[key],
@@ -112,7 +111,7 @@ export function createStruct<T extends TagTypeShape>(
 							fieldOffset,
 						);
 						break;
-					case TagTypeKind.UNION:
+					case UNION:
 						nestedView = createUnion(
 							type,
 							safeInit[key],
@@ -204,7 +203,7 @@ export function createUnion<T extends TagTypeShape>(
 			// recursive binding for nested structs
 			let nestedView: Struct<any>;
 			switch (type[TAG_TYPE_KIND]) {
-				case TagTypeKind.STRUCT:
+				case STRUCT:
 					nestedView = createStruct(
 						type,
 						safeInit[key],
@@ -212,7 +211,7 @@ export function createUnion<T extends TagTypeShape>(
 						fieldOffset,
 					);
 					break;
-				case TagTypeKind.UNION:
+				case UNION:
 					nestedView = createUnion(
 						type,
 						safeInit[key],
@@ -274,8 +273,8 @@ export function createPtr<T extends FieldType>(
 	if (typeof pointedDef !== "object") {
 		size = TYPE_LAYOUT[pointedDef].size; // FFIType
 	} else if (
-		pointedDef[TAG_TYPE_KIND] === TagTypeKind.PTR ||
-		pointedDef[TAG_TYPE_KIND] === TagTypeKind.FUNPTR
+		pointedDef[TAG_TYPE_KIND] === PTR ||
+		pointedDef[TAG_TYPE_KIND] === FUNPTR
 	) {
 		// pointer of function pointer
 		size = POINTER_SIZE;
