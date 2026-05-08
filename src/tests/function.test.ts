@@ -1,4 +1,4 @@
-import { cc, FFIType, ptr } from "bun:ffi";
+import { cc, FFIType } from "bun:ffi";
 import { beforeAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { createStruct, funPtr, struct } from "..";

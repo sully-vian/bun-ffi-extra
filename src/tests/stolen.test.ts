@@ -190,7 +190,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 		describe("List packing (TypeScript → C)", () => {
 			it("should pack a list of highlights for C to consume", () => {
 				const foo = createPtr(HighlightPtr);
-				foo[0] = {
+				foo[0] = createStruct(Highlight, {
 					start: 6,
 					end: 11,
 					style_id: 1,
@@ -198,8 +198,8 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 					hl_ref: 0,
 					conceal_text_ptr: "XXX",
 					conceal_text_len: 3n,
-				};
-				foo[1] = {
+				});
+				foo[1] = createStruct(Highlight, {
 					start: 18,
 					end: 24,
 					style_id: 2,
@@ -207,8 +207,8 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 					hl_ref: 10,
 					conceal_text_ptr: "******",
 					conceal_text_len: 6n,
-				};
-				foo[2] = {
+				});
+				foo[2] = createStruct(Highlight, {
 					start: 30,
 					end: 35,
 					style_id: 3,
@@ -216,16 +216,16 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 					hl_ref: 20,
 					conceal_text_ptr: "Hello🌍",
 					conceal_text_len: BigInt(B`Hello🌍`.length),
-				};
+				});
 
 				// Validate entire list with C
-				const isValid = lib.symbols.validateHighlightList(foo.$raw, 3);
+				const isValid = lib.symbols.validateHighlightList(foo.addr, 3);
 				expect(isValid).toBeTrue();
 			});
 
 			it("should pack list with mixed null and non-null text", () => {
-				const view = createArr(Highlight, 3);
-				view[0] = {
+				const view = createPtr(HighlightPtr);
+				view[0] = createStruct(Highlight, {
 					start: 1,
 					end: 5,
 					style_id: 1,
@@ -233,8 +233,8 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 					hl_ref: 0,
 					conceal_text_ptr: "",
 					conceal_text_len: 0n,
-				};
-				view[1] = {
+				});
+				view[1] = createStruct(Highlight, {
 					start: 10,
 					end: 15,
 					style_id: 2,
@@ -242,8 +242,8 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 					hl_ref: 5,
 					conceal_text_ptr: "Test",
 					conceal_text_len: 4n,
-				};
-				view[2] = {
+				});
+				view[2] = createStruct(Highlight, {
 					start: 20,
 					end: 25,
 					style_id: 3,
@@ -251,14 +251,12 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 					hl_ref: 10,
 					conceal_text_ptr: "",
 					conceal_text_len: 0n,
-				};
+				});
 
-				// Validate each struct individually by slicing the buffer
-				const size = sizeof(Highlight);
 				const testBuffer = B`Test`;
 
 				const h1Valid = lib.symbols.validateHighlight(
-					view.$raw.slice(0, size),
+					view[0].$raw,
 					1,
 					5,
 					1,
@@ -270,19 +268,19 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 				expect(h1Valid).toBeTrue();
 
 				const h2Valid = lib.symbols.validateHighlight(
-					view.$raw.slice(size, size * 2),
+					ptr(view[1].$raw),
 					10,
 					15,
 					2,
 					1,
 					5,
 					ptr(testBuffer),
-					4,
+					testBuffer.length - 1, // remove null terminator
 				);
 				expect(h2Valid).toBeTrue();
 
 				const h3Valid = lib.symbols.validateHighlight(
-					view.$raw.slice(size * 2, size * 3),
+					ptr(view[2].$raw),
 					20,
 					25,
 					3,
@@ -299,15 +297,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 			it("should unpack a C-created list of highlights", () => {
 				const cListPtr = lib.symbols.createHighlightList();
 				expect(cListPtr).not.toBeNull();
-
-				const count = 3;
-				const byteLen = count * sizeof(Highlight);
-				const raw = new Uint8Array(
-					toArrayBuffer(cListPtr as Pointer, 0, byteLen),
-				);
-				const highlights = createArr(Highlight, 3, raw);
-
-				expect(highlights.$length).toBe(3);
+				const highlights = createPtr(HighlightPtr, cListPtr);
 
 				// Validate first highlight
 				expect(highlights[0].start).toBe(6);
