@@ -1,11 +1,9 @@
 import { FFIType } from "bun:ffi";
 import {
   FUNPTR,
-  LAYOUT,
   type MapFFIType,
   PTR,
   STRUCT,
-  TAG_TYPE_KIND,
   type TagType,
   type TagTypeKind,
   type TagTypeShape,
@@ -74,7 +72,7 @@ export type LayoutInfo = {
 };
 
 export function getLayoutInfo(
-  def: TagTypeShape,
+  shape: TagTypeShape,
   kind: TagTypeKind,
 ): LayoutInfo {
   let currentOffset = 0;
@@ -82,20 +80,20 @@ export function getLayoutInfo(
   let maxSize = 0;
   const offsets: Record<string, number> = {};
 
-  for (const key of Object.keys(def)) {
-    const type = def[key];
+  for (const key of Object.keys(shape)) {
+    const type = shape[key];
     if (type === undefined) throw new Error(`Invalid struct definition.`);
 
     let fieldSize = 0;
     let fieldAlign = 1;
 
     if (typeof type === "object") {
-      if (type[TAG_TYPE_KIND] === PTR || type[TAG_TYPE_KIND] === FUNPTR) {
+      if (type.kind === PTR || type.kind === FUNPTR) {
         fieldSize = POINTER_SIZE;
         fieldAlign = POINTER_SIZE;
       } else {
-        fieldSize = type[LAYOUT].size;
-        fieldAlign = type[LAYOUT].align;
+        fieldSize = type.layout.size;
+        fieldAlign = type.layout.align;
       }
     } else {
       const layout = TYPE_LAYOUT[type];
@@ -146,5 +144,5 @@ export function getLayoutInfo(
 }
 
 export function sizeof(def: TagType): number {
-  return def[LAYOUT].size;
+  return def.layout.size;
 }

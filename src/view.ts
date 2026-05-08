@@ -7,7 +7,6 @@ import {
   type FieldType,
   FUNPTR,
   IS_STRUCT,
-  LAYOUT,
   type OnlyOne,
   PTR,
   type Ptr,
@@ -15,7 +14,6 @@ import {
   STRUCT,
   type Struct,
   type StructDef,
-  TAG_TYPE_KIND,
   type TagTypeShape,
   UNION,
   type Union,
@@ -30,7 +28,7 @@ export function createStruct<T extends TagTypeShape>(
 ): Struct<T> {
   const safeInit: Record<string, any> = initVals || {};
 
-  const structSize = def[LAYOUT].size;
+  const structSize = def.layout.size;
 
   // resolve underlying memory
   const rootBuffer = buffer || new Uint8Array(structSize);
@@ -60,12 +58,12 @@ export function createStruct<T extends TagTypeShape>(
   });
 
   // bind the properties
-  for (const key of Object.keys(def)) {
-    const type = def[key];
-    const fieldOffset = def[LAYOUT].offsets[key];
+  for (const key of Object.keys(def.shape)) {
+    const type = def.shape[key];
+    const fieldOffset = def.layout.offsets[key];
 
     if (typeof type === "object") {
-      if (type[TAG_TYPE_KIND] === FUNPTR) {
+      if (type.kind === FUNPTR) {
         const reader = PRIMITIVE_READERS[FFIType.function];
         const writer = PRIMITIVE_WRITERS[FFIType.function];
         Object.defineProperty(structObj, key, {
@@ -77,7 +75,7 @@ export function createStruct<T extends TagTypeShape>(
           },
           enumerable: true,
         });
-      } else if (type[TAG_TYPE_KIND] === PTR) {
+      } else if (type.kind === PTR) {
         const ptrReader = PRIMITIVE_READERS[FFIType.ptr];
         const ptrWriter = PRIMITIVE_WRITERS[FFIType.ptr];
         Object.defineProperty(structObj, key, {
@@ -102,7 +100,7 @@ export function createStruct<T extends TagTypeShape>(
       } else {
         // recursive binding for nested structs
         let nestedView: Struct<any>;
-        switch (type[TAG_TYPE_KIND]) {
+        switch (type.kind) {
           case STRUCT:
             nestedView = createStruct(
               type,
@@ -174,7 +172,7 @@ export function createUnion<T extends TagTypeShape>(
 ): Union<T> {
   const safeInit: Record<string, any> = initVals || {};
 
-  const unionSize = def[LAYOUT].size;
+  const unionSize = def.layout.size;
 
   // resolve underlying memory
   const rootBuffer = buffer || new Uint8Array(unionSize);
@@ -195,12 +193,12 @@ export function createUnion<T extends TagTypeShape>(
   };
 
   // bind the properties
-  for (const key of Object.keys(def)) {
-    const type = def[key];
-    const fieldOffset = def[LAYOUT].offsets[key];
+  for (const key of Object.keys(def.shape)) {
+    const type = def.shape[key];
+    const fieldOffset = def.layout.offsets[key];
 
     if (typeof type === "object") {
-      if (type[TAG_TYPE_KIND] === FUNPTR) {
+      if (type.kind === FUNPTR) {
         const reader = PRIMITIVE_READERS[FFIType.function];
         const writer = PRIMITIVE_WRITERS[FFIType.function];
         Object.defineProperty(unionObj, key, {
@@ -212,7 +210,7 @@ export function createUnion<T extends TagTypeShape>(
           },
           enumerable: true,
         });
-      } else if (type[TAG_TYPE_KIND] === PTR) {
+      } else if (type.kind === PTR) {
         const ptrReader = PRIMITIVE_READERS[FFIType.ptr];
         const ptrWriter = PRIMITIVE_WRITERS[FFIType.ptr];
         Object.defineProperty(unionObj, key, {
@@ -237,7 +235,7 @@ export function createUnion<T extends TagTypeShape>(
       } else {
         // recursive binding for nested structs
         let nestedView: Struct<any>;
-        switch (type[TAG_TYPE_KIND]) {
+        switch (type.kind) {
           case STRUCT:
             nestedView = createStruct(
               type,
@@ -308,14 +306,11 @@ export function createPtr<T extends FieldType>(
   const pointedDef: FieldType = def.def;
   if (typeof pointedDef !== "object") {
     size = TYPE_LAYOUT[pointedDef].size; // FFIType
-  } else if (
-    pointedDef[TAG_TYPE_KIND] === PTR ||
-    pointedDef[TAG_TYPE_KIND] === FUNPTR
-  ) {
+  } else if (pointedDef.kind === PTR || pointedDef.kind === FUNPTR) {
     // pointer of function pointer
     size = POINTER_SIZE;
   } else {
-    size = pointedDef[LAYOUT].size; // struct or union
+    size = pointedDef.layout.size; // struct or union
   }
 
   let resolvedAddr: Pointer | null;
@@ -340,7 +335,7 @@ export function createPtr<T extends FieldType>(
         const offset = index * size;
 
         if (typeof pointedDef === "object") {
-          switch (pointedDef[TAG_TYPE_KIND]) {
+          switch (pointedDef.kind) {
             case STRUCT: {
               const buffer = new Uint8Array(
                 toArrayBuffer(target.addr, offset, size),
@@ -389,7 +384,7 @@ export function createPtr<T extends FieldType>(
         const offset = index * size;
 
         if (typeof pointedDef === "object") {
-          switch (pointedDef[TAG_TYPE_KIND]) {
+          switch (pointedDef.kind) {
             case STRUCT:
             case UNION: {
               if (!value || !value.$raw)
