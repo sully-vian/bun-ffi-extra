@@ -43,7 +43,7 @@ describe("Structs with nested Pointers", () => {
     const myNode = createStruct(Node, { id: 123 });
 
     // Assign the pointer field using a Ptr wrapper around the raw memory address
-    myNode.point_ptr = createPtr(PointPtr, ptr(myPoint.$raw));
+    myNode.point_ptr = createPtr(PointPtr, { addr: ptr(myPoint.$raw) });
 
     const isValid = lib.symbols.verify_node(myNode.$raw, 123, 50, 60);
     expect(isValid).toBeTrue();
@@ -54,8 +54,10 @@ describe("Structs with nested Pointers", () => {
     const rawNodePtr = lib.symbols.get_c_node();
 
     // Map the raw pointer to our JS Node view
-    const cNodeView = createPtr(NodePtr, rawNodePtr);
+    const cNodeView = createPtr(NodePtr, { addr: rawNodePtr });
     const n = cNodeView._;
+    console.debug(`ptr:       ${cNodeView.addr?.toString(16)}, point_ptr:          ${n.point_ptr.addr?.toString(16)}`);
+    console.debug(`raw: ${n.$raw}`);
 
     expect(n.id).toBe(42);
     expect(n.point_ptr).not.toBeNull();
@@ -71,7 +73,7 @@ describe("Structs with nested Pointers", () => {
     const myPoint = createStruct(Point, { x: 10, y: 20 });
     const myNode = createStruct(Node, { id: 1 });
 
-    myNode.point_ptr = createPtr(PointPtr, ptr(myPoint.$raw));
+    myNode.point_ptr = createPtr(PointPtr, { addr: ptr(myPoint.$raw) });
 
     // Pass the struct view to C, which will follow the pointer and mutate myPoint
     lib.symbols.mutate_node_target(myNode.$raw);
@@ -87,7 +89,7 @@ describe("Structs with nested Pointers", () => {
 
   test("handles null pointers safely inside structs", () => {
     const myNode = createStruct(Node, { id: 99 });
-    myNode.point_ptr = createPtr(PointPtr, null);
+    myNode.point_ptr = createPtr(PointPtr, { addr: null });
 
     expect(myNode.point_ptr.addr).toBeNull();
     // Attempting to deref a null pointer should throw

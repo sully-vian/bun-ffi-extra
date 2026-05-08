@@ -24,7 +24,7 @@ describe("C Pointers", () => {
 
   test("reads a struct pointer returned from C", () => {
     const rawPtr = lib.symbols.get_global_point();
-    const p = createPtr(PointPtr, rawPtr);
+    const p = createPtr(PointPtr, { addr: rawPtr });
 
     // Dereference `_` to access the struct
     expect(p._.x).toBe(10);
@@ -33,7 +33,7 @@ describe("C Pointers", () => {
 
   test("mutates C memory directly from JS via pointer", () => {
     const rawPtr = lib.symbols.get_global_point();
-    const p = createPtr(PointPtr, rawPtr);
+    const p = createPtr(PointPtr, { addr: rawPtr });
 
     // Mutate properties directly
     p._.x = 100;
@@ -46,7 +46,7 @@ describe("C Pointers", () => {
 
   test("assigns a whole partial object to a C pointer", () => {
     const rawPtr = lib.symbols.get_global_point();
-    const p = createPtr(PointPtr, rawPtr);
+    const p = createPtr(PointPtr, { addr: rawPtr });
 
     // Use the custom setter mapped to `_`
     p._ = createStruct(Point, { x: 42, y: 42 });
@@ -57,7 +57,7 @@ describe("C Pointers", () => {
 
   test("creates a pointer from a JS struct and passes it to C", () => {
     const myPoint = createStruct(Point, { x: 5, y: 5 });
-    const p = createPtr(PointPtr, ptr(myPoint.$raw));
+    const p = createPtr(PointPtr, { addr: ptr(myPoint.$raw) });
 
     // Pass the extracted memory address (`addr`) to C
     lib.symbols.increment_point(p.addr);
@@ -71,7 +71,7 @@ describe("C Pointers", () => {
   });
 
   test("throws an error when dereferencing a null pointer", () => {
-    const nullPtr = createPtr(PointPtr, null);
+    const nullPtr = createPtr(PointPtr, { addr: null });
 
     expect(nullPtr.addr).toBeNull();
     expect(() => nullPtr._).toThrow(); // deref of null pointer

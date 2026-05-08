@@ -300,25 +300,27 @@ export function createUnion<T extends TagTypeShape>(
 
 export function createPtr<T extends FieldType>(
   def: PtrDef<T>,
-  addr?: Pointer | null,
+  options?: { addr?: Pointer | null; length?: number },
 ): Ptr<T> {
   let size: number;
   const pointedDef: FieldType = def.def;
+
   if (typeof pointedDef !== "object") {
     size = TYPE_LAYOUT[pointedDef].size; // FFIType
   } else if (pointedDef.kind === PTR || pointedDef.kind === FUNPTR) {
-    // pointer of function pointer
-    size = POINTER_SIZE;
+    size = POINTER_SIZE; // pointer of function pointer
   } else {
     size = pointedDef.layout.size; // struct or union
   }
 
   let resolvedAddr: Pointer | null;
-  if (addr === undefined) {
-    const buffer = new Uint8Array(size);
-    resolvedAddr = ptr(buffer);
+  let backingBuffer: Uint8Array | undefined;
+  const length = options?.length ?? 1;
+  if (options && options.addr !== undefined) {
+    resolvedAddr = options.addr;
   } else {
-    resolvedAddr = addr;
+    backingBuffer = new Uint8Array(size * length);
+    resolvedAddr = ptr(backingBuffer);
   }
   let res = { addr: resolvedAddr };
 
@@ -333,6 +335,11 @@ export function createPtr<T extends FieldType>(
 
         const index = Number(prop);
         const offset = index * size;
+
+        if (index >= length)
+          throw new Error(
+            `Index out of bounds in pointer (${index} >= ${length})`,
+          );
 
         if (typeof pointedDef === "object") {
           switch (pointedDef.kind) {
@@ -353,7 +360,7 @@ export function createPtr<T extends FieldType>(
                 toArrayBuffer(target.addr, offset, size),
               );
               const rawPtr = PRIMITIVE_READERS[FFIType.ptr](view, 0);
-              return createPtr(pointedDef, rawPtr);
+              return createPtr(pointedDef, { addr: rawPtr });
             }
             case FUNPTR: {
               const view = new DataView(
@@ -382,6 +389,11 @@ export function createPtr<T extends FieldType>(
 
         const index = Number(prop);
         const offset = index * size;
+
+        if (index >= length)
+          throw new Error(
+            `Index out of bounds in pointer (${index} >= ${length})`,
+          );
 
         if (typeof pointedDef === "object") {
           switch (pointedDef.kind) {

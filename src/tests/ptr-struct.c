@@ -1,6 +1,7 @@
 #include <stdbool.h>
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 
 typedef struct {
   int32_t x;
@@ -11,25 +12,34 @@ typedef struct {
   uint32_t id;
   // This will force padding on 64-bit systems since pointers are 8 bytes
   // layout: id (4) + padding (4) + point_ptr (8) = 16 bytes
-  Point *point_ptr; 
+  Point *point_ptr;
 } Node;
 
 // Test 1: Verify JS-packed struct containing a pointer
-bool verify_node(Node *n, uint32_t expected_id, int32_t expected_x, int32_t expected_y) {
-  if (n->id != expected_id) return false;
-  if (n->point_ptr == NULL) return false;
-  
-  if (n->point_ptr->x != expected_x) return false;
-  if (n->point_ptr->y != expected_y) return false;
-  
+bool verify_node(Node *n, uint32_t expected_id, int32_t expected_x,
+                 int32_t expected_y) {
+  if (n->id != expected_id)
+    return false;
+  if (n->point_ptr == NULL)
+    return false;
+
+  if (n->point_ptr->x != expected_x)
+    return false;
+  if (n->point_ptr->y != expected_y)
+    return false;
+
   return true;
 }
 
 // Test 2: Return a C-created node with an inner pointer to JS
-static Point c_point = { .x = 100, .y = 200 };
-static Node c_node = { .id = 42, .point_ptr = &c_point };
+static Point c_point = {.x = 100, .y = 200};
+static Node c_node = {.id = 42, .point_ptr = &c_point};
 
 Node *get_c_node() {
+  printf("raw: ");
+  for (int i = 0; i < sizeof(c_node); i++)
+    printf("%u,", ((unsigned char *)&c_node)[i]);
+  printf("\n&c_node: %p, c_node.point_ptr: %p\n", &c_node, c_node.point_ptr);
   return &c_node;
 }
 
