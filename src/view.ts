@@ -1,4 +1,4 @@
-import { FFIType, type Pointer, toArrayBuffer } from "bun:ffi";
+import { FFIType, type Pointer, ptr, toArrayBuffer } from "bun:ffi";
 import { PRIMITIVE_READERS, PRIMITIVE_WRITERS } from "./io";
 import { POINTER_SIZE, TYPE_LAYOUT } from "./layout";
 import {
@@ -302,7 +302,7 @@ export function createUnion<T extends TagTypeShape>(
 
 export function createPtr<T extends FieldType>(
 	def: PtrDef<T>,
-	addr: Pointer | null,
+	addr?: Pointer | null,
 ): Ptr<T> {
 	let size: number;
 	const pointedDef: FieldType = def.def;
@@ -317,9 +317,17 @@ export function createPtr<T extends FieldType>(
 	} else {
 		size = pointedDef[LAYOUT].size; // struct or union
 	}
-	const res = { addr };
 
-	const proxy = new Proxy(res, {
+	let resolvedAddr: Pointer | null;
+	if (addr === undefined) {
+		const buffer = new Uint8Array(size);
+		resolvedAddr = ptr(buffer);
+	} else {
+		resolvedAddr = addr;
+	}
+	let res = { addr: resolvedAddr };
+
+	res = new Proxy(res, {
 		get(target, prop) {
 			if (prop === "addr") return target.addr;
 			if (prop === DEREF) prop = "0"; // p[0] <=> *p
@@ -423,5 +431,5 @@ export function createPtr<T extends FieldType>(
 		},
 	});
 
-	return proxy as Ptr<T>;
+	return res as Ptr<T>;
 }
