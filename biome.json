@@ -1,12 +1,12 @@
 {
-	"formatter": {
-		"indentStyle": "tab"
-	},
-	"linter": {
-		"rules": {
-			"suspicious": {
-				"noExplicitAny": "on"
-			}
-		}
-	}
+  "formatter": {
+    "indentStyle": "space"
+  },
+  "linter": {
+    "rules": {
+      "suspicious": {
+        "noExplicitAny": "on"
+      }
+    }
+  }
 }
