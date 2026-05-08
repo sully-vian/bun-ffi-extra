@@ -56,8 +56,6 @@ describe("Structs with nested Pointers", () => {
     // Map the raw pointer to our JS Node view
     const cNodeView = createPtr(NodePtr, { addr: rawNodePtr });
     const n = cNodeView._;
-    console.debug(`ptr:       ${cNodeView.addr?.toString(16)}, point_ptr:          ${n.point_ptr.addr?.toString(16)}`);
-    console.debug(`raw: ${n.$raw}`);
 
     expect(n.id).toBe(42);
     expect(n.point_ptr).not.toBeNull();

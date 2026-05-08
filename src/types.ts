@@ -209,7 +209,6 @@ type ViewFields<T extends TagTypeShape> = {
 
 type MemoryView = {
   readonly $raw: Uint8Array;
-  readonly [IS_VIEW]: true;
 };
 
 export type Struct<T extends TagTypeShape> = ViewFields<T> & MemoryView;
@@ -224,6 +223,3 @@ export type Ptr<T extends FieldType> = {
   [DEREF]: Infer<T>;
   [index: number]: Infer<T>;
 };
-
-export const IS_STRUCT = Symbol("IS_STRUCT");
-export const IS_VIEW = Symbol("IS_VIEW");

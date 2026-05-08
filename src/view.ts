@@ -6,7 +6,6 @@ import {
   type DeepPartial,
   type FieldType,
   FUNPTR,
-  IS_STRUCT,
   type OnlyOne,
   PTR,
   type Ptr,
@@ -51,12 +50,6 @@ export function createStruct<T extends TagTypeShape>(
     },
   };
 
-  Object.defineProperty(structObj, IS_STRUCT, {
-    value: true,
-    enumerable: false,
-    writable: false,
-  });
-
   // bind the properties
   for (const key of Object.keys(def.shape)) {
     const type = def.shape[key];
@@ -82,7 +75,7 @@ export function createStruct<T extends TagTypeShape>(
           get() {
             try {
               const rawPtr = ptrReader(view, fieldOffset);
-              return createPtr(type, rawPtr);
+              return createPtr(type, { addr: rawPtr });
             } catch (e) {
               throw new Error(`Failed to get field '${key}'`, { cause: e });
             }
@@ -124,8 +117,7 @@ export function createStruct<T extends TagTypeShape>(
             try {
               // allow easy setting: parent.nested = { x: 10, y: 20 };
               if (!val) return;
-              if (val[IS_STRUCT])
-                return structBuffer.set(val.$raw, fieldOffset); // fast: direct memory copy
+              if (val.$raw) return structBuffer.set(val.$raw, fieldOffset); // fast: direct memory copy
 
               for (const k of Object.keys(val)) {
                 (nestedView as any)[k] = val[k];
@@ -259,7 +251,7 @@ export function createUnion<T extends TagTypeShape>(
             try {
               // allow easy setting: parent.nested = { x: 10, y: 20 };
               if (!val) return;
-              if (val[IS_STRUCT]) return unionBuffer.set(val.$raw, fieldOffset); // fast: direct memory copy
+              if (val.$raw) return unionBuffer.set(val.$raw, fieldOffset); // fast: direct memory copy
 
               for (const k of Object.keys(val)) {
                 (nestedView as any)[k] = val[k];
