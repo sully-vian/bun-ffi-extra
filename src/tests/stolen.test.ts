@@ -189,7 +189,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
 
     describe("List packing (TypeScript → C)", () => {
       it("should pack a list of highlights for C to consume", () => {
-        const foo = createPtr(HighlightPtr);
+        const foo = createPtr(HighlightPtr, { length: 3 });
         foo[0] = createStruct(Highlight, {
           start: 6,
           end: 11,
@@ -224,7 +224,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
       });
 
       it("should pack list with mixed null and non-null text", () => {
-        const view = createPtr(HighlightPtr);
+        const view = createPtr(HighlightPtr, { length: 3 });
         view[0] = createStruct(Highlight, {
           start: 1,
           end: 5,
@@ -297,7 +297,10 @@ describe("C interop with pointers and arrays (Highlight)", () => {
       it("should unpack a C-created list of highlights", () => {
         const cListPtr = lib.symbols.createHighlightList();
         expect(cListPtr).not.toBeNull();
-        const highlights = createPtr(HighlightPtr, cListPtr);
+        const highlights = createPtr(HighlightPtr, {
+          addr: cListPtr,
+          length: 3,
+        });
 
         // Validate first highlight
         expect(highlights[0].start).toBe(6);
