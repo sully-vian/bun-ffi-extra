@@ -9,7 +9,7 @@ import {
   type OnlyOne,
   PTR,
   type Ptr,
-  type PtrDef,
+  pointer,
   STRUCT,
   type Struct,
   type StructDef,
@@ -75,7 +75,7 @@ export function createStruct<T extends TagTypeShape>(
           get() {
             try {
               const rawPtr = ptrReader(view, fieldOffset);
-              return createPtr(type, { addr: rawPtr });
+              return createPtr(type.def, { addr: rawPtr });
             } catch (e) {
               throw new Error(`Failed to get field '${key}'`, { cause: e });
             }
@@ -209,7 +209,7 @@ export function createUnion<T extends TagTypeShape>(
           get() {
             try {
               const rawPtr = ptrReader(view, fieldOffset);
-              return createPtr(type, rawPtr);
+              return createPtr(type.def, rawPtr);
             } catch (e) {
               throw new Error(`Failed to get field '${key}'`, { cause: e });
             }
@@ -291,9 +291,10 @@ export function createUnion<T extends TagTypeShape>(
 }
 
 export function createPtr<T extends FieldType>(
-  def: PtrDef<T>,
+  def2: T,
   options?: { addr?: Pointer | null; length?: number },
 ): Ptr<T> {
+  const def = pointer(def2);
   let size: number;
   const pointedDef: FieldType = def.def;
 
@@ -352,7 +353,7 @@ export function createPtr<T extends FieldType>(
                 toArrayBuffer(target.addr, offset, size),
               );
               const rawPtr = PRIMITIVE_READERS[FFIType.ptr](view, 0);
-              return createPtr(pointedDef, { addr: rawPtr });
+              return createPtr(pointedDef.def, { addr: rawPtr });
             }
             case FUNPTR: {
               const view = new DataView(
