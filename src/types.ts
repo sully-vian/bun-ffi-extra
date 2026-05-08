@@ -121,15 +121,18 @@ export const { STRUCT, UNION, PTR, FUNPTR } = TagTypeKind;
  * } Point;
  * ```
  */
-export type StructDef<T extends TagTypeShape> = T & {
-  readonly [TAG_TYPE_KIND]: TagTypeKind.STRUCT;
-  readonly [LAYOUT]: LayoutInfo;
+export type StructDef<Shape extends TagTypeShape> = {
+  readonly shape: Shape;
+  readonly layout: LayoutInfo;
+  readonly kind: TagTypeKind.STRUCT;
 };
-export function struct<T extends TagTypeShape>(def: T): StructDef<T> {
+export function struct<Shape extends TagTypeShape>(
+  shape: Shape,
+): StructDef<Shape> {
   return {
-    ...def,
-    [LAYOUT]: getLayoutInfo(def, STRUCT),
-    [TAG_TYPE_KIND]: STRUCT,
+    shape,
+    layout: getLayoutInfo(shape, STRUCT),
+    kind: STRUCT,
   };
 }
 
@@ -151,36 +154,39 @@ export function struct<T extends TagTypeShape>(def: T): StructDef<T> {
  * };
  * ```
  */
-export type UnionDef<T extends TagTypeShape> = T & {
-  readonly [TAG_TYPE_KIND]: TagTypeKind.UNION;
-  readonly [LAYOUT]: LayoutInfo;
+export type UnionDef<Shape extends TagTypeShape> = {
+  readonly shape: Shape;
+  readonly kind: TagTypeKind.UNION;
+  readonly layout: LayoutInfo;
 };
-export function union<T extends TagTypeShape>(def: T): UnionDef<T> {
+export function union<Shape extends TagTypeShape>(
+  shape: Shape,
+): UnionDef<Shape> {
   return {
-    ...def,
-    [LAYOUT]: getLayoutInfo(def, UNION),
-    [TAG_TYPE_KIND]: UNION,
+    shape,
+    layout: getLayoutInfo(shape, UNION),
+    kind: UNION,
   };
 }
 
 export type PtrDef<T extends FieldType> = {
-  readonly [TAG_TYPE_KIND]: TagTypeKind.PTR;
+  readonly kind: TagTypeKind.PTR;
   readonly def: T;
 };
 
 export function pointer<T extends FieldType>(def: T): PtrDef<T> {
   return {
-    [TAG_TYPE_KIND]: PTR,
+    kind: PTR,
     def,
   };
 }
 
 export type FunPtrDef = FFIFunction & {
-  readonly [TAG_TYPE_KIND]: TagTypeKind.FUNPTR;
+  readonly kind: TagTypeKind.FUNPTR;
 };
 
 export function funPtr(def: FFIFunction): FunPtrDef {
-  return { ...def, [TAG_TYPE_KIND]: FUNPTR };
+  return { ...def, kind: FUNPTR };
 }
 
 /* ----------------------- */
@@ -220,5 +226,3 @@ export type Ptr<T extends FieldType> = {
 
 export const IS_STRUCT = Symbol("IS_STRUCT");
 export const IS_VIEW = Symbol("IS_VIEW");
-export const TAG_TYPE_KIND = Symbol("TAG_TYPE_KIND");
-export const LAYOUT = Symbol("LAYOUT");
