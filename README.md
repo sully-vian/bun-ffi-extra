@@ -16,7 +16,7 @@ bun run build # create dist package
 
 ## TODO
 
-- [ ] Rewrite `Ptr` as `Pointer & { [index: number]: T }` for better DX and C arrays ar the same time
+- [x] Rewrite `Ptr` as `{ [index: number]: T }` for better DX and C arrays ar the same time
 - [ ] Rewrite `PRIMITIVE_READERS` and `PRIMITIVE_WRITERS` for better type safety
 - [ ] Function Pointers
     - [x] Implement
@@ -36,10 +36,4 @@ bun run build # create dist package
     - [ ] Document
 - [x] Optimizations
     - [x] decide read and write case methods when defining properties, avoid switch statement traversal on every access
-
-## Ideas
-
-### Static index properties
-
-Issue: on every index access, the same `get` function is called. a different one could be set for every index since we know how long the array is.
 

@@ -1,6 +1,6 @@
 {
   "name": "bun-ffi-extra",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Extra features for Bun's FFI module.",
   "type": "module",
   "module": "src/index.ts",
