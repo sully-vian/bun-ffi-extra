@@ -1,11 +1,11 @@
 import { FFIType } from "bun:ffi";
 import {
-	B,
-	createStruct,
-	createUnion,
-	type Infer,
-	struct,
-	union,
+  B,
+  createStruct,
+  createUnion,
+  type Infer,
+  struct,
+  union,
 } from "../src";
 
 // struct Point {
@@ -13,8 +13,8 @@ import {
 //     int y;
 // };
 const Point = struct({
-	x: FFIType.int,
-	y: FFIType.int,
+  x: FFIType.int,
+  y: FFIType.int,
 });
 type Point = Infer<typeof Point>;
 
@@ -26,8 +26,8 @@ p1.y = 2;
 const p2 = p1;
 
 const Line = struct({
-	p1: Point,
-	p2: Point,
+  p1: Point,
+  p2: Point,
 });
 
 const l = createStruct(Line);
@@ -35,11 +35,11 @@ l.p1 = p1;
 l.p2 = p2;
 
 const Entity = struct({
-	point: struct({
-		x: FFIType.int,
-		y: FFIType.int,
-	}),
-	alive: FFIType.bool,
+  point: struct({
+    x: FFIType.int,
+    y: FFIType.int,
+  }),
+  alive: FFIType.bool,
 });
 
 const e = createStruct(Entity);
@@ -47,8 +47,8 @@ e.point = p1;
 e.alive = true;
 
 const IntFloat = union({
-	i: FFIType.i32,
-	f: FFIType.f32,
+  i: FFIType.i32,
+  f: FFIType.f32,
 });
 type IntFloat = Infer<typeof IntFloat>;
 
