@@ -1,7 +1,7 @@
 import { cc, FFIType } from "bun:ffi";
 import { beforeAll, expect, test } from "bun:test";
 import { join } from "node:path";
-import { createStruct, struct } from "../";
+import { createStruct, struct } from "..";
 
 const cFileName = "main.c";
 const cPath = join(import.meta.dir, cFileName);
