@@ -1,16 +1,16 @@
 {
   "name": "bun-ffi-extra",
-  "version": "1.0.12",
+  "version": "1.0.14",
   "description": "Extra features for Bun's FFI module.",
   "type": "module",
-  "module": "src/index.ts",
-  "main": "src/index.ts",
-  "types": "dist/index.d.ts",
+  "module": "./dist/index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    "types": "./src/index.ts",
-    "bun": "./src/index.ts",
-    "import": "./src/index.ts",
-    "default": "./src/index.ts"
+    "types": "./dist/index.ts",
+    "bun": "./dist/index.ts",
+    "import": "./dist/index.ts",
+    "default": "./dist/index.ts"
   },
   "license": "MIT",
   "files": [
