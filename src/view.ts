@@ -392,7 +392,7 @@ export function createPtr<T extends FieldType>(
           switch (pointedDef.kind) {
             case STRUCT:
             case UNION: {
-              if (!value || !value.$raw)
+              if (!value || value.$raw === undefined)
                 throw new Error(
                   "Cannot assign non-view to struct/union pointer index.",
                 );

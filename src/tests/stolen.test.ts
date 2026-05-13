@@ -1,12 +1,9 @@
 import { cc, FFIType, type Pointer, ptr, toArrayBuffer } from "bun:ffi";
 import { beforeAll, describe, expect, it } from "bun:test";
-import { join } from "node:path";
 import { B, createPtr, createStruct, sizeof, struct } from "..";
+import source from "./stolen.c" with { type: "file" };
 
-const cFileName = "stolen.c";
-const cPath = join(import.meta.dir, cFileName);
-
-const libDef = {
+const symbols = {
   createTestPerson: {
     returns: FFIType.ptr,
   },
@@ -36,14 +33,11 @@ const libDef = {
   },
 } as const;
 
-let lib: ReturnType<typeof cc<typeof libDef>>;
+let lib: ReturnType<typeof cc<typeof symbols>>;
 
 describe("bun-ffi-extra C interop", () => {
   beforeAll(async () => {
-    lib = cc({
-      source: Bun.file(cPath),
-      symbols: libDef,
-    });
+    lib = cc({ source, symbols });
   });
 
   const SimplePerson = struct({

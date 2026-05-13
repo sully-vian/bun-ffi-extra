@@ -32,7 +32,9 @@
   "scripts": {
     "test": "bun test",
     "lint": "bunx biome check --write .",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "build:js": "bun build ./src/index.ts --outdir ./dist --target bun",
+    "build:types": "tsc -p tsconfig.build.json",
+    "build": "rm -rf dist && bun run build:js && bun run build:types",
     "prepublishOnly": "bun lint && bun test && bun run build"
   },
   "devDependencies": {

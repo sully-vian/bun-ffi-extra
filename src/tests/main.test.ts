@@ -1,12 +1,9 @@
 import { cc, FFIType } from "bun:ffi";
 import { beforeAll, expect, test } from "bun:test";
-import { join } from "node:path";
 import { createStruct, struct } from "..";
+import source from "./main.test.c" with { type: "file" };
 
-const cFileName = "main.c";
-const cPath = join(import.meta.dir, cFileName);
-
-const libDef = {
+const symbols = {
   verify_point: { args: [FFIType.ptr], returns: FFIType.i32 },
   verify_padded: { args: [FFIType.ptr], returns: FFIType.i32 },
   verify_tail_padded_size: { args: [FFIType.ptr], returns: FFIType.i32 },
@@ -21,13 +18,10 @@ const libDef = {
   fill_ptr_struct: { args: [FFIType.ptr], returns: FFIType.void },
 } as const;
 
-let lib: ReturnType<typeof cc<typeof libDef>>;
+let lib: ReturnType<typeof cc<typeof symbols>>;
 
 beforeAll(async () => {
-  lib = cc({
-    source: Bun.file(cPath),
-    symbols: libDef,
-  });
+  lib = cc({ source, symbols });
 });
 
 test("handles simple structs without padding", () => {
