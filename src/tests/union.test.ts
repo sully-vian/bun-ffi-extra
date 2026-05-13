@@ -1,23 +1,20 @@
 import { cc, FFIType } from "bun:ffi";
 import { beforeAll, describe, expect, test } from "bun:test";
-import { join } from "node:path";
 import { createStruct, createUnion, sizeof, struct, union } from "..";
+import source from "./union.c" with { type: "file" };
 
-const cFileName = "union.c";
-const cPath = join(import.meta.dir, cFileName);
-
-const libDef = {
+const symbols = {
   verify_union_int: { args: [FFIType.ptr], returns: FFIType.i32 },
   verify_union_float: { args: [FFIType.ptr], returns: FFIType.f32 },
   verify_data_union: { args: [FFIType.ptr], returns: FFIType.u64 },
   verify_variant: { args: [FFIType.ptr], returns: FFIType.f64 },
 } as const;
 
-let lib: ReturnType<typeof cc<typeof libDef>>;
+let lib: ReturnType<typeof cc<typeof symbols>>;
 
 describe("C Unions", () => {
   beforeAll(() => {
-    lib = cc({ source: Bun.file(cPath), symbols: libDef });
+    lib = cc({ source, symbols });
   });
 
   test("shares memory between different types", () => {

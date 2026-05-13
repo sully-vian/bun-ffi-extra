@@ -1,4 +1,7 @@
 {
+  "files": {
+    "includes": ["src/**", "!dist"]
+  },
   "formatter": {
     "indentStyle": "space"
   },

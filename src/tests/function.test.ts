@@ -1,12 +1,9 @@
 import { cc, FFIType } from "bun:ffi";
 import { beforeAll, describe, expect, test } from "bun:test";
-import { join } from "node:path";
 import { createStruct, funPtr, struct } from "..";
+import source from "./function.c" with { type: "file" };
 
-const cFileName = "function.c";
-const cPath = join(import.meta.dir, cFileName);
-
-const libDef = {
+const symbols = {
   execute_callback: {
     args: [FFIType.ptr, FFIType.i32, FFIType.i32],
     returns: FFIType.i32,
@@ -17,7 +14,7 @@ const libDef = {
   },
 } as const;
 
-let lib: ReturnType<typeof cc<typeof libDef>>;
+let lib: ReturnType<typeof cc<typeof symbols>>;
 
 const CallbackStruct = struct({
   id: FFIType.i32,
@@ -30,7 +27,7 @@ const CallbackStruct = struct({
 
 describe("Structs with function pointers", () => {
   beforeAll(() => {
-    lib = cc({ source: Bun.file(cPath), symbols: libDef });
+    lib = cc({ source, symbols });
   });
 
   test("passes a JSCallback to C inside a struct", () => {

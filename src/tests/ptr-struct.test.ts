@@ -1,12 +1,9 @@
 import { cc, FFIType, ptr } from "bun:ffi";
 import { beforeAll, describe, expect, test } from "bun:test";
-import { join } from "node:path";
 import { createPtr, createStruct, pointer, sizeof, struct } from "..";
+import source from "./ptr-struct.c" with { type: "file" };
 
-const cFileName = "ptr-struct.c";
-const cPath = join(import.meta.dir, cFileName);
-
-const libDef = {
+const symbols = {
   verify_node: {
     args: [FFIType.ptr, FFIType.u32, FFIType.i32, FFIType.i32],
     returns: FFIType.bool,
@@ -15,7 +12,7 @@ const libDef = {
   mutate_node_target: { args: [FFIType.ptr], returns: FFIType.void } as const,
 } as const;
 
-let lib: ReturnType<typeof cc<typeof libDef>>;
+let lib: ReturnType<typeof cc<typeof symbols>>;
 
 const Point = struct({ x: FFIType.i32, y: FFIType.i32 });
 const Node = struct({
@@ -25,7 +22,7 @@ const Node = struct({
 
 describe("Structs with nested Pointers", () => {
   beforeAll(() => {
-    lib = cc({ source: Bun.file(cPath), symbols: libDef });
+    lib = cc({ source, symbols });
   });
 
   test("calculates layout correctly with padding for 64-bit pointers", () => {

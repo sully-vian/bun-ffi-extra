@@ -1,24 +1,21 @@
 import { cc, FFIType, ptr } from "bun:ffi";
 import { beforeAll, describe, expect, test } from "bun:test";
-import { join } from "node:path";
 import { createPtr, createStruct, struct } from "..";
+import source from "./ptr-struct.test" with { type: "file" };
 
-const cFileName = "ptr.c";
-const cPath = join(import.meta.dir, cFileName);
-
-const libDef = {
+const symbols = {
   get_global_point: { returns: FFIType.pointer },
   verify_point: { args: [FFIType.ptr], returns: FFIType.i32 },
   increment_point: { args: [FFIType.ptr], returns: FFIType.void },
 } as const;
 
-let lib: ReturnType<typeof cc<typeof libDef>>;
+let lib: ReturnType<typeof cc<typeof symbols>>;
 
 const Point = struct({ x: FFIType.i32, y: FFIType.i32 });
 
 describe("C Pointers", () => {
   beforeAll(() => {
-    lib = cc({ source: Bun.file(cPath), symbols: libDef });
+    lib = cc({ source, symbols });
   });
 
   test("reads a struct pointer returned from C", () => {
