@@ -14,7 +14,6 @@
   },
   "license": "MIT",
   "files": [
-    "src",
     "dist",
     "README.md"
   ],
@@ -30,12 +29,13 @@
     "url": "git+https://github.com/sully-vian/bun-ffi-extra.git"
   },
   "scripts": {
+      "type-check":"tsc --noEmit",
     "test": "bun test",
     "lint": "bunx biome check --write .",
-    "build:js": "bun build ./src/index.ts --outdir ./dist --target bun",
     "build:types": "tsc -p tsconfig.build.json",
+    "build:js": "bun build ./src/index.ts --outdir ./dist --target bun",
     "build": "rm -rf dist && bun run build:js && bun run build:types",
-    "prepublishOnly": "bun lint && bun test && bun run build"
+    "prepublishOnly": "bun run type-check && bun run lint && bun run test && bun run build"
   },
   "devDependencies": {
     "@types/bun": "latest",
