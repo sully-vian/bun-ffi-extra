@@ -1,16 +1,16 @@
 {
   "name": "bun-ffi-extra",
-  "version": "1.0.14",
+  "version": "1.0.16",
   "description": "Extra features for Bun's FFI module.",
   "type": "module",
   "module": "./dist/index.js",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    "types": "./dist/index.ts",
-    "bun": "./dist/index.ts",
-    "import": "./dist/index.ts",
-    "default": "./dist/index.ts"
+    "types": "./dist/index.d.ts",
+    "bun": "./dist/index.js",
+    "import": "./dist/index.js",
+    "default": "./dist/index.js"
   },
   "license": "MIT",
   "files": [
@@ -29,13 +29,13 @@
     "url": "git+https://github.com/sully-vian/bun-ffi-extra.git"
   },
   "scripts": {
-      "type-check":"tsc --noEmit",
+    "type-check": "tsc --noEmit",
     "test": "bun test",
     "lint": "bunx biome check --write .",
     "build:types": "tsc -p tsconfig.build.json",
     "build:js": "bun build ./src/index.ts --outdir ./dist --target bun",
     "build": "rm -rf dist && bun run build:js && bun run build:types",
-    "prepublishOnly": "bun run type-check && bun run lint && bun run test && bun run build"
+    "prepublishOnly": "bun run type-check && bun run lint && bun run test && bun run build && bunx publint"
   },
   "devDependencies": {
     "@types/bun": "latest",
