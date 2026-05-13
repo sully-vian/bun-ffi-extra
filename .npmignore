@@ -1,5 +1,0 @@
-src/tests/
-bun.lock
-.github/
-biome.json
-tsconfig*.json
