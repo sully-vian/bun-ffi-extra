@@ -10,12 +10,11 @@ The use of Bun FFI's `read` namespace is currently avoided since it is not faste
 bun lint # lint and fix with biomejs
 
 bun test # run tests
-
-bun run build # create dist package
 ```
 
 ## TODO
 
+- [ ] Use `import source from "./file.c" with {type: "file"};` to import C source in tests
 - [x] Rewrite `Ptr` as `{ [index: number]: T }` for better DX and C arrays ar the same time
 - [ ] Rewrite `PRIMITIVE_READERS` and `PRIMITIVE_WRITERS` for better type safety
 - [ ] Function Pointers
