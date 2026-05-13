@@ -1,7 +1,7 @@
 import { cc, FFIType, ptr } from "bun:ffi";
 import { beforeAll, describe, expect, test } from "bun:test";
 import { createPtr, createStruct, struct } from "..";
-import source from "./ptr-struct.test" with { type: "file" };
+import source from "./ptr.c" with { type: "file" };
 
 const symbols = {
   get_global_point: { returns: FFIType.pointer },
