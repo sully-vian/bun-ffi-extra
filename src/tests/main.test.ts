@@ -1,7 +1,7 @@
 import { cc, FFIType } from "bun:ffi";
 import { beforeAll, expect, test } from "bun:test";
 import { createStruct, struct } from "..";
-import source from "./main.test.c" with { type: "file" };
+import source from "./main.c" with { type: "file" };
 
 const symbols = {
   verify_point: { args: [FFIType.ptr], returns: FFIType.i32 },
