@@ -36,10 +36,6 @@ static Point c_point = {.x = 100, .y = 200};
 static Node c_node = {.id = 42, .point_ptr = &c_point};
 
 Node *get_c_node() {
-  printf("raw: ");
-  for (int i = 0; i < sizeof(c_node); i++)
-    printf("%u,", ((unsigned char *)&c_node)[i]);
-  printf("\n&c_node: %p, c_node.point_ptr: %p\n", &c_node, c_node.point_ptr);
   return &c_node;
 }
 
