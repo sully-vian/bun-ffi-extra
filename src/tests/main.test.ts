@@ -1,4 +1,4 @@
-import { cc, FFIType } from "bun:ffi";
+import { cc, FFIType, type Pointer } from "bun:ffi";
 import { beforeAll, expect, test } from "bun:test";
 import { createStruct, struct } from "..";
 import source from "./main.c" with { type: "file" };
@@ -209,5 +209,5 @@ test("reads C-strings and raw pointers", () => {
 
   expect(s.name).toBe("Hello from C FFI!");
   // 0xDEADBEEF in decimal is 3735928559
-  expect(s.data_ptr).toBe(3735928559);
+  expect(s.data_ptr).toBe(3735928559 as Pointer);
 });

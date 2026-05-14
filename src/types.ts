@@ -20,7 +20,7 @@ export type MapFFIType = {
   [FFIType.i64_fast]: bigint;
   [FFIType.f64]: number;
 
-  [FFIType.ptr]: number;
+  [FFIType.ptr]: Pointer;
   [FFIType.cstring]: string;
   [FFIType.function]: JSCallback;
   [FFIType.buffer]: never;
