@@ -315,7 +315,7 @@ export function createPtr<T extends FieldType>(
     backingBuffer = new Uint8Array(size * length);
     resolvedAddr = ptr(backingBuffer);
   }
-  let res = { addr: resolvedAddr };
+  let res = { addr: resolvedAddr, length };
 
   res = new Proxy(res, {
     get(target, prop) {

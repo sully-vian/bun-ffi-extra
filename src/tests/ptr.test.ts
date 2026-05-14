@@ -72,4 +72,12 @@ describe("C Pointers", () => {
     expect(nullPtr.addr).toBeNull();
     expect(() => nullPtr._).toThrow(); // deref of null pointer
   });
+
+  test("the length of a simple pointer is 1", () => {
+    const pointPtr = createPtr(Point);
+    expect(pointPtr.length).toBe(1);
+
+    const pointArr = createPtr(Point, { length: 7 });
+    expect(pointArr.length).toBe(7);
+  });
 });
