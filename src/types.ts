@@ -83,7 +83,13 @@ export type Infer<T> =
     ? Struct<Shape>
     : T extends UnionDef<infer Shape>
       ? Union<Shape>
-      : never;
+      : T extends PtrDef<infer Pointed>
+        ? Ptr<Pointed>
+        : T extends FunPtrDef
+          ? ((...args: any[]) => any) | null
+          : T extends keyof MapFFIType
+            ? MapFFIType[T]
+            : never;
 
 export type FieldType = FFIType | TagType | PtrDef<any> | FunPtrDef;
 
