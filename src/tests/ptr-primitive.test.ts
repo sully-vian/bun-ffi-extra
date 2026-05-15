@@ -31,7 +31,7 @@ describe("Primitive Pointers", () => {
     intPtr._ = 21; // Type checking should now recognize this as a `number`
     expect(intPtr._).toBe(21);
 
-    const result = lib.symbols.double_int(intPtr.addr);
+    const result = lib.symbols.double_int(intPtr.$);
     expect(result).toBe(42);
     expect(intPtr._).toBe(42);
   });
@@ -40,7 +40,7 @@ describe("Primitive Pointers", () => {
     const rawPtr = lib.symbols.get_global_float();
     const floatPtr = createPtr(FFIType.f32, { addr: rawPtr });
 
-    expect(floatPtr.addr).toBe(rawPtr);
+    expect(floatPtr.$).toBe(rawPtr);
     expect(floatPtr.length).toBe(1);
     expect(floatPtr._).toBeCloseTo(3.14, 2);
 

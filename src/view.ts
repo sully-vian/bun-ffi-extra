@@ -306,130 +306,122 @@ export function createPtr<T extends FieldType>(
     size = pointedDef.layout.size; // struct or union
   }
 
-  let resolvedAddr: Pointer | null;
+  let addr: Pointer | null;
   let backingBuffer: Uint8Array | undefined;
   const length = options?.length ?? 1;
   if (options && options.addr !== undefined) {
-    resolvedAddr = options.addr;
+    addr = options.addr;
   } else {
     backingBuffer = new Uint8Array(size * length);
-    resolvedAddr = ptr(backingBuffer);
+    addr = ptr(backingBuffer);
   }
-  let res = { addr: resolvedAddr, length };
 
-  res = new Proxy(res, {
-    get(target, prop) {
-      if (prop === "addr") return target.addr;
-      if (prop === DEREF) prop = "0"; // p[0] <=> *p
+  const res = new Proxy(
+    { length },
+    {
+      get(target, prop) {
+        if (prop === "addr" || prop === "$") return addr;
+        if (prop === DEREF) prop = "0"; // p[0] <=> *p
 
-      if (typeof prop === "string" && !Number.isNaN(Number(prop))) {
-        if (target.addr === null)
-          throw new Error("Cannot dereference null Ptr");
+        if (typeof prop === "string" && !Number.isNaN(Number(prop))) {
+          if (addr === null) throw new Error("Cannot dereference null Ptr");
 
-        const index = Number(prop);
-        const offset = index * size;
+          const index = Number(prop);
+          const offset = index * size;
 
-        if (index >= length)
-          throw new Error(
-            `Index out of bounds in pointer (${index} >= ${length})`,
-          );
+          if (index >= length)
+            throw new Error(
+              `Index out of bounds in pointer (${index} >= ${length})`,
+            );
 
-        if (typeof pointedDef === "object") {
-          switch (pointedDef.kind) {
-            case STRUCT: {
-              const buffer = new Uint8Array(
-                toArrayBuffer(target.addr, offset, size),
-              );
-              return createStruct(pointedDef, {}, buffer);
-            }
-            case UNION: {
-              const buffer = new Uint8Array(
-                toArrayBuffer(target.addr, offset, size),
-              );
-              return createUnion(pointedDef, {}, buffer);
-            }
-            case PTR: {
-              const view = new DataView(
-                toArrayBuffer(target.addr, offset, size),
-              );
-              const rawPtr = PRIMITIVE_READERS[FFIType.ptr](view, 0);
-              return createPtr(pointedDef.def, { addr: rawPtr });
-            }
-            case FUNPTR: {
-              const view = new DataView(
-                toArrayBuffer(target.addr, offset, size),
-              );
-              return PRIMITIVE_READERS[FFIType.function](view, 0, pointedDef);
-            }
-          }
-        } else {
-          const view = new DataView(toArrayBuffer(target.addr, offset, size));
-          return PRIMITIVE_READERS[pointedDef](view, 0);
-        }
-      }
-      return Reflect.get(target, prop);
-    },
-    set(target, prop, value) {
-      if (prop === "addr") {
-        target.addr = value;
-        return true;
-      }
-      if (prop === DEREF) prop = "0";
-
-      if (typeof prop === "string" && !Number.isNaN(Number(prop))) {
-        if (target.addr === null)
-          throw new Error("Cannot dereference null Ptr");
-
-        const index = Number(prop);
-        const offset = index * size;
-
-        if (index >= length)
-          throw new Error(
-            `Index out of bounds in pointer (${index} >= ${length})`,
-          );
-
-        if (typeof pointedDef === "object") {
-          switch (pointedDef.kind) {
-            case STRUCT:
-            case UNION: {
-              if (!value || value.$raw === undefined)
-                throw new Error(
-                  "Cannot assign non-view to struct/union pointer index.",
+          if (typeof pointedDef === "object") {
+            switch (pointedDef.kind) {
+              case STRUCT: {
+                const buffer = new Uint8Array(
+                  toArrayBuffer(addr, offset, size),
                 );
-              const buffer = new Uint8Array(
-                toArrayBuffer(target.addr, offset, size),
-              );
-              buffer.set(value.$raw); // direct memory copy
-              return true;
+                return createStruct(pointedDef, {}, buffer);
+              }
+              case UNION: {
+                const buffer = new Uint8Array(
+                  toArrayBuffer(addr, offset, size),
+                );
+                return createUnion(pointedDef, {}, buffer);
+              }
+              case PTR: {
+                const view = new DataView(toArrayBuffer(addr, offset, size));
+                const rawPtr = PRIMITIVE_READERS[FFIType.ptr](view, 0);
+                return createPtr(pointedDef.def, { addr: rawPtr });
+              }
+              case FUNPTR: {
+                const view = new DataView(toArrayBuffer(addr, offset, size));
+                return PRIMITIVE_READERS[FFIType.function](view, 0, pointedDef);
+              }
             }
-            case PTR: {
-              const view = new DataView(
-                toArrayBuffer(target.addr, offset, size),
-              );
-              PRIMITIVE_WRITERS[FFIType.ptr](
-                view,
-                0,
-                value ? value.addr : null,
-              );
-              return true;
-            }
-            case FUNPTR: {
-              const view = new DataView(
-                toArrayBuffer(target.addr, offset, size),
-              );
-              PRIMITIVE_WRITERS[FFIType.function](view, 0, value, pointedDef);
-              return true;
-            }
+          } else {
+            const view = new DataView(toArrayBuffer(addr, offset, size));
+            return PRIMITIVE_READERS[pointedDef](view, 0);
           }
-        } else {
-          const view = new DataView(toArrayBuffer(target.addr, offset, size));
-          PRIMITIVE_WRITERS[pointedDef](view, 0, value);
+        }
+        return Reflect.get(target, prop);
+      },
+      set(target, prop, value) {
+        if (prop === "addr" || prop === "$") {
+          addr = value;
           return true;
         }
-      }
-      return Reflect.set(target, prop, value);
+        if (prop === DEREF) prop = "0";
+
+        if (typeof prop === "string" && !Number.isNaN(Number(prop))) {
+          if (addr === null) throw new Error("Cannot dereference null Ptr");
+
+          const index = Number(prop);
+          const offset = index * size;
+
+          if (index >= length)
+            throw new Error(
+              `Index out of bounds in pointer (${index} >= ${length})`,
+            );
+
+          if (typeof pointedDef === "object") {
+            switch (pointedDef.kind) {
+              case STRUCT:
+              case UNION: {
+                if (!value || value.$raw === undefined)
+                  throw new Error(
+                    "Cannot assign non-view to struct/union pointer index.",
+                  );
+                const buffer = new Uint8Array(
+                  toArrayBuffer(addr, offset, size),
+                );
+                buffer.set(value.$raw); // direct memory copy
+                return true;
+              }
+              case PTR: {
+                const view = new DataView(toArrayBuffer(addr, offset, size));
+                PRIMITIVE_WRITERS[FFIType.ptr](
+                  view,
+                  0,
+                  value ? value.addr : null,
+                );
+                return true;
+              }
+              case FUNPTR: {
+                const view = new DataView(toArrayBuffer(addr, offset, size));
+                PRIMITIVE_WRITERS[FFIType.function](view, 0, value, pointedDef);
+                return true;
+              }
+            }
+          } else {
+            const view = new DataView(toArrayBuffer(addr, offset, size));
+            PRIMITIVE_WRITERS[pointedDef](view, 0, value);
+            return true;
+          }
+        }
+        return Reflect.set(target, prop, value);
+      },
     },
-  });
+  );
 
   return res as Ptr<T>;
 }

@@ -54,7 +54,7 @@ describe("Structs with nested Pointers", () => {
 
     expect(n.id).toBe(42);
     expect(n.point_ptr).not.toBeNull();
-    expect(n.point_ptr.addr).not.toBeNull();
+    expect(n.point_ptr.$).not.toBeNull();
 
     // Dereference the inner pointer field
     const innerPoint = n.point_ptr._;
@@ -84,7 +84,7 @@ describe("Structs with nested Pointers", () => {
     const myNode = createStruct(Node, { id: 99 });
     myNode.point_ptr = createPtr(Point, { addr: null });
 
-    expect(myNode.point_ptr.addr).toBeNull();
+    expect(myNode.point_ptr.$).toBeNull();
     // Attempting to deref a null pointer should throw
     expect(() => myNode.point_ptr._).toThrow();
   });

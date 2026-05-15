@@ -212,7 +212,7 @@ describe("C interop with pointers and arrays (Highlight)", () => {
         });
 
         // Validate entire list with C
-        const isValid = lib.symbols.validateHighlightList(foo.addr, 3);
+        const isValid = lib.symbols.validateHighlightList(foo.$, 3);
         expect(isValid).toBeTrue();
       });
 

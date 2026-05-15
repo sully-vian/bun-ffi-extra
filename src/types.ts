@@ -225,6 +225,7 @@ export const DEREF = "_"; // for non-verbose access
 
 export type Ptr<T extends FieldType> = {
   addr: Pointer | null;
+  $: Pointer | null;
   length: number;
   [DEREF]: Infer<T>;
   [index: number]: Infer<T>;

@@ -56,7 +56,7 @@ describe("C Pointers", () => {
     const p = createPtr(Point, { addr: ptr(myPoint.$raw) });
 
     // Pass the extracted memory address (`addr`) to C
-    lib.symbols.increment_point(p.addr);
+    lib.symbols.increment_point(p.$);
 
     // Ensure the original JS struct view sees the mutations performed by C
     expect(myPoint.x).toBe(6);
@@ -69,7 +69,7 @@ describe("C Pointers", () => {
   test("throws an error when dereferencing a null pointer", () => {
     const nullPtr = createPtr(Point, { addr: null });
 
-    expect(nullPtr.addr).toBeNull();
+    expect(nullPtr.$).toBeNull();
     expect(() => nullPtr._).toThrow(); // deref of null pointer
   });
 
