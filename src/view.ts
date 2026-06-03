@@ -317,7 +317,7 @@ export function createPtr<T extends FieldType>(
   }
 
   const res = new Proxy(
-    { length },
+    { length, $raw: backingBuffer },
     {
       get(target, prop) {
         if (prop === "addr" || prop === "$") return addr;

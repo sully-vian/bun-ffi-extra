@@ -226,6 +226,8 @@ export const DEREF = "_"; // for non-verbose access
 export type Ptr<T extends FieldType> = {
   addr: Pointer | null;
   $: Pointer | null;
+  /** Backing Buffer to avoid cleanup from GC */
+  $raw: Uint8Array;
   length: number;
   [DEREF]: Infer<T>;
   [index: number]: Infer<T>;
